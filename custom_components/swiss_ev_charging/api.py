@@ -75,57 +75,109 @@ class SwissEvChargingApi:
 def parse_evse_data(payload: dict) -> dict[str, ChargingPoint]:
     """Parse an OICP EVSEData document into ``{evse_id: ChargingPoint}``."""
     points: dict[str, ChargingPoint] = {}
-    for operator_block in payload.get("EVSEData", []):
+    skipped = 0
+    for operator_block in _as_list(payload.get("EVSEData")):
         operator_name = operator_block.get("OperatorName")
-        for record in operator_block.get("EVSEDataRecord", []):
-            evse_id = record.get("EvseID")
-            if not evse_id:
-                continue
-            latitude, longitude = _parse_coordinates(record.get("GeoCoordinates"))
-            points[evse_id] = ChargingPoint(
-                evse_id=evse_id,
-                name=_first_localized(record.get("ChargingStationNames")),
-                operator=operator_name,
-                plugs=list(record.get("Plugs", [])),
-                max_power_kw=_max_power(record.get("ChargingFacilities")),
-                latitude=latitude,
-                longitude=longitude,
-                address=_format_address(record.get("Address")),
-            )
+        for record in _as_list(operator_block.get("EVSEDataRecord")):
+            try:
+                evse_id = record.get("EvseID")
+                if not evse_id:
+                    continue
+                latitude, longitude = _parse_coordinates(
+                    record.get("GeoCoordinates")
+                )
+                points[evse_id] = ChargingPoint(
+                    evse_id=evse_id,
+                    name=_first_localized(record.get("ChargingStationNames")),
+                    operator=operator_name,
+                    plugs=[
+                        p
+                        for p in _as_list(record.get("Plugs"))
+                        if isinstance(p, str)
+                    ],
+                    max_power_kw=_max_power(record.get("ChargingFacilities")),
+                    latitude=latitude,
+                    longitude=longitude,
+                    address=_format_address(record.get("Address")),
+                )
+            except Exception:  # noqa: BLE001 - one bad record must not abort the parse
+                skipped += 1
+                _LOGGER.debug("Skipping unparseable EVSEDataRecord", exc_info=True)
+    if skipped:
+        _LOGGER.warning(
+            "Parsed %d charging points, skipped %d unparseable records",
+            len(points),
+            skipped,
+        )
     return points
 
 
 def parse_evse_status(payload: dict) -> dict[str, str]:
     """Parse an OICP EVSEStatus document into ``{evse_id: normalised_state}``."""
     statuses: dict[str, str] = {}
-    for operator_block in payload.get("EVSEStatuses", []):
-        for record in operator_block.get("EVSEStatusRecord", []):
-            evse_id = record.get("EvseID")
-            if not evse_id:
-                continue
-            statuses[evse_id] = OICP_STATUS_MAP.get(
-                record.get("EVSEStatus"), STATE_UNKNOWN
-            )
+    skipped = 0
+    for operator_block in _as_list(payload.get("EVSEStatuses")):
+        for record in _as_list(operator_block.get("EVSEStatusRecord")):
+            try:
+                evse_id = record.get("EvseID")
+                if not evse_id:
+                    continue
+                statuses[evse_id] = OICP_STATUS_MAP.get(
+                    record.get("EVSEStatus"), STATE_UNKNOWN
+                )
+            except Exception:  # noqa: BLE001 - one bad record must not abort the parse
+                skipped += 1
+                _LOGGER.debug("Skipping unparseable EVSEStatusRecord", exc_info=True)
+    if skipped:
+        _LOGGER.warning(
+            "Parsed %d statuses, skipped %d unparseable records",
+            len(statuses),
+            skipped,
+        )
     return statuses
 
 
-def _first_localized(names: list | None) -> str | None:
-    """Return the first value from an OICP list of localised strings."""
-    if not names:
-        return None
-    first = names[0]
-    if isinstance(first, dict):
-        return first.get("value")
-    return str(first)
+def _as_list(value: object) -> list:
+    """Normalise an OICP value that may be a single object or a list into a list.
+
+    The feed follows the XML-to-JSON convention where a single element is
+    serialised as an object and multiple elements as an array; this collapses
+    both shapes (and ``None``) to a list so callers can always iterate.
+    """
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
 
 
-def _max_power(facilities: list | None) -> float | None:
+def _first_localized(names: object) -> str | None:
+    """Return the first usable string from an OICP localised-name value.
+
+    Accepts a list, a single ``{lang, value}`` object, alternative key shapes
+    such as ``{"@language", "#text"}`` or ``{lang: text}``, or a plain string.
+    """
+    lang_keys = {"lang", "language", "@language"}
+    for item in _as_list(names):
+        if isinstance(item, dict):
+            for key in ("value", "#text", "text"):
+                text = item.get(key)
+                if isinstance(text, str) and text:
+                    return text
+            # Fallback: first string value whose key is not a language marker.
+            for key, candidate in item.items():
+                if key in lang_keys:
+                    continue
+                if isinstance(candidate, str) and candidate:
+                    return candidate
+        elif isinstance(item, str) and item:
+            return item
+    return None
+
+
+def _max_power(facilities: object) -> float | None:
     """Return the highest ``Power`` (kW) across the charging facilities."""
-    if not facilities:
-        return None
     powers = [
         facility["Power"]
-        for facility in facilities
+        for facility in _as_list(facilities)
         if isinstance(facility, dict) and isinstance(facility.get("Power"), (int, float))
     ]
     return float(max(powers)) if powers else None
@@ -137,7 +189,7 @@ def _parse_coordinates(geo: dict | None) -> tuple[float | None, float | None]:
     OICP allows several representations; we support the two common in this feed:
     ``Google`` ("lat lng" string) and ``DecimalDegree`` ({Latitude, Longitude}).
     """
-    if not geo:
+    if not isinstance(geo, dict):
         return None, None
 
     google = geo.get("Google")
@@ -164,7 +216,7 @@ def _parse_coordinates(geo: dict | None) -> tuple[float | None, float | None]:
 
 def _format_address(address: dict | None) -> str | None:
     """Build a human-readable single-line address from an OICP Address object."""
-    if not address:
+    if not isinstance(address, dict):
         return None
     street = address.get("Street")
     house = address.get("HouseNum")

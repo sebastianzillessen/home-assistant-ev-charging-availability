@@ -1,0 +1,20 @@
+{
+  "EVSEData": {
+    "OperatorID": "CH*SGL",
+    "OperatorName": "Single Element Operator",
+    "EVSEDataRecord": {
+      "EvseID": "CH*SGL*E1",
+      "ChargingStationNames": { "lang": "de", "value": "Bern Single" },
+      "Address": {
+        "Country": "CHE",
+        "City": "Bern",
+        "Street": "Kramgasse",
+        "HouseNum": "5",
+        "PostalCode": "3011"
+      },
+      "GeoCoordinates": { "Google": "46.9480 7.4474" },
+      "Plugs": "CCS Combo 2 Plug (Cable Attached)",
+      "ChargingFacilities": { "PowerType": "DC", "Power": 75 }
+    }
+  }
+}
