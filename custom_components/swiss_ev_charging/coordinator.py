@@ -29,7 +29,6 @@ from .const import (
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
-    DEFAULT_NOTIFY_SERVICE,
     DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -149,12 +148,8 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
             return
         if not self._option(CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE):
             return
-        service = (
-            self._option(CONF_NOTIFY_SERVICE, "") or DEFAULT_NOTIFY_SERVICE
-        ).strip()
-        if "." not in service:
-            _LOGGER.warning("Ignoring invalid notify service %r", service)
-            return
+        # A notify.* entity id, or blank to fall back to a persistent notification.
+        target = (self._option(CONF_NOTIFY_SERVICE, "") or "").strip()
 
         for evse_id, tracked in current.items():
             was = previous.get(evse_id)
@@ -162,28 +157,37 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
                 continue
             if was.state != STATE_AVAILABLE and tracked.state == STATE_AVAILABLE:
                 self.hass.async_create_task(
-                    self._async_send_notification(service, tracked)
+                    self._async_send_notification(target, tracked)
                 )
 
     async def _async_send_notification(
-        self, service: str, tracked: TrackedEvse
+        self, target: str, tracked: TrackedEvse
     ) -> None:
-        """Call the configured notify service for one station."""
-        domain, _, name = service.partition(".")
+        """Publish a message for one station via the configured notify entity."""
         label = tracked.point.name or tracked.point.evse_id
         message = f"{label} is now available"
         if self.tag:
             message = f"[{self.tag}] {message}"
+        data = {"message": message, "title": "EV charger available"}
         try:
-            await self.hass.services.async_call(
-                domain,
-                name,
-                {"message": message, "title": "EV charger available"},
-                blocking=False,
-            )
+            if target:
+                # Any entity that can publish a message (notify.* entity).
+                await self.hass.services.async_call(
+                    "notify",
+                    "send_message",
+                    {"entity_id": target, **data},
+                    blocking=False,
+                )
+            else:
+                await self.hass.services.async_call(
+                    "persistent_notification", "create", data, blocking=False
+                )
         except Exception as err:  # noqa: BLE001 - notification must never break polling
             _LOGGER.warning(
-                "Failed to notify via %s for %s: %s", service, tracked.point.evse_id, err
+                "Failed to notify %s for %s: %s",
+                target or "persistent_notification",
+                tracked.point.evse_id,
+                err,
             )
 
     def _select_tracked_ids(self) -> list[str]:

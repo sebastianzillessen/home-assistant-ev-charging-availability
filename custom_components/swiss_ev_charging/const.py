@@ -40,9 +40,6 @@ DEFAULT_SCAN_INTERVAL: Final = 180  # seconds (3 minutes)
 MIN_SCAN_INTERVAL: Final = 60  # seconds, be respectful of the public endpoint
 
 DEFAULT_NOTIFY_ON_AVAILABLE: Final = False
-# Used when notifications are enabled but no explicit service is configured;
-# creates a Home Assistant persistent notification with no extra setup.
-DEFAULT_NOTIFY_SERVICE: Final = "persistent_notification.create"
 
 # Master (static) data is large and rarely changes; refresh it infrequently.
 MASTER_REFRESH_INTERVAL: Final = timedelta(hours=24)
