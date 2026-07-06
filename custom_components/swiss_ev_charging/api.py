@@ -174,13 +174,34 @@ def _first_localized(names: object) -> str | None:
 
 
 def _max_power(facilities: object) -> float | None:
-    """Return the highest ``Power`` (kW) across the charging facilities."""
-    powers = [
-        facility["Power"]
-        for facility in _as_list(facilities)
-        if isinstance(facility, dict) and isinstance(facility.get("Power"), (int, float))
-    ]
-    return float(max(powers)) if powers else None
+    """Return the highest power (kW) across the charging facilities.
+
+    The real feed uses a lowercase ``power`` key whose value is a string
+    (e.g. ``"22.0"``); older/other OICP variants use ``Power`` as a number.
+    Both are handled.
+    """
+    powers = []
+    for facility in _as_list(facilities):
+        if not isinstance(facility, dict):
+            continue
+        power = _to_float(facility.get("power", facility.get("Power")))
+        if power is not None:
+            powers.append(power)
+    return max(powers) if powers else None
+
+
+def _to_float(value: object) -> float | None:
+    """Coerce an int/float or numeric string into a float, else ``None``."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.strip())
+        except ValueError:
+            return None
+    return None
 
 
 def _parse_coordinates(geo: dict | None) -> tuple[float | None, float | None]:

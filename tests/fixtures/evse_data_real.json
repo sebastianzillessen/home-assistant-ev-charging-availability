@@ -1,0 +1,70 @@
+{
+  "EVSEData": [
+    {
+      "EVSEDataRecord": [
+        {
+          "Accessibility": "Paying publicly accessible",
+          "Address": {
+            "City": "Meyrin",
+            "Country": "CHE",
+            "PostalCode": "1217",
+            "Street": "SIG CERN Esplanade des Particules",
+            "Floor": null,
+            "Region": null
+          },
+          "ChargingFacilities": [
+            { "Amperage": "32", "Voltage": "230", "power": "22.0", "powertype": "AC_3_PHASE" }
+          ],
+          "ChargingStationNames": [
+            { "lang": "en", "value": "SIG CERN Esplanade des Particules" },
+            { "lang": "fr", "value": "SIG CERN Esplanade des Particules" },
+            { "lang": "de", "value": "SIG CERN Esplanade des Particules" },
+            { "lang": "it", "value": "SIG CERN Esplanade des Particules" }
+          ],
+          "EvseID": "CH*CCI*E22078",
+          "GeoCoordinates": { "Google": "46.23432 6.055602" },
+          "IsOpen24Hours": true,
+          "Plugs": ["Type 2 Outlet"],
+          "GeoChargingPointEntrance": { "Google": "None None" },
+          "AdditionalInfo": null
+        },
+        {
+          "Accessibility": "Paying publicly accessible",
+          "Address": {
+            "City": "Bursins",
+            "Country": "CHE",
+            "PostalCode": "1183",
+            "Street": "La Côte/A1 nord"
+          },
+          "ChargingFacilities": [
+            { "Amperage": "560", "Voltage": "400", "power": "224.0", "powertype": "DC" }
+          ],
+          "ChargingStationNames": [
+            { "lang": "en", "value": "MOVE - La Côte Jura" },
+            { "lang": "de", "value": "MOVE - La Côte Jura" }
+          ],
+          "EvseID": "CH*CCC*E50084",
+          "GeoCoordinates": { "Google": "46.446593 6.297621" },
+          "Plugs": ["CCS Combo 2 Plug (Cable Attached)"]
+        },
+        {
+          "Address": {
+            "City": "Bursins",
+            "Country": "CHE",
+            "PostalCode": "1183",
+            "Street": "La Côte/A1 nord"
+          },
+          "ChargingFacilities": [
+            { "Amperage": "250", "Voltage": "400", "power": "100.0", "powertype": "DC" }
+          ],
+          "ChargingStationNames": [
+            { "lang": "en", "value": "MOVE - La Côte Jura" }
+          ],
+          "EvseID": "CH*CCC*E50085",
+          "GeoCoordinates": { "Google": "46.446593 6.297621" },
+          "Plugs": ["CHAdeMO"]
+        }
+      ]
+    }
+  ]
+}

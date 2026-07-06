@@ -82,6 +82,37 @@ def test_parse_evse_data_single_element_shapes() -> None:
     assert point.latitude == 46.9480
 
 
+def test_parse_real_sample_lowercase_string_power() -> None:
+    """Parse fixtures captured from the live feed.
+
+    The real feed uses lowercase ``power``/``powertype`` keys with the power as a
+    *string* (e.g. ``"22.0"``); this locks that in so max power is never silently
+    dropped again.
+    """
+    from .conftest import load_fixture
+
+    points = parse_evse_data(load_fixture("evse_data_real.json"))
+
+    ac = points["CH*CCI*E22078"]
+    assert ac.name == "SIG CERN Esplanade des Particules"
+    assert ac.plugs == ["Type 2 Outlet"]
+    assert ac.max_power_kw == 22.0
+    assert ac.latitude == 46.23432
+    assert ac.longitude == 6.055602
+    assert ac.address == "SIG CERN Esplanade des Particules, 1217 Meyrin"
+
+    assert points["CH*CCC*E50084"].max_power_kw == 224.0
+    assert points["CH*CCC*E50085"].max_power_kw == 100.0
+
+    statuses = parse_evse_status(load_fixture("evse_status_real.json"))
+    assert statuses["CH*CCI*E22078"] == "unknown"
+    assert statuses["CH*SOC*E5106*1A"] == STATE_AVAILABLE
+    assert statuses["CH*SOC*E5106*1B"] == STATE_OCCUPIED
+
+    # The two files join on EvseID.
+    assert set(points) & set(statuses)
+
+
 def test_first_localized_alternative_shapes() -> None:
     """_first_localized copes with dict/string/list and alternative key names."""
     from custom_components.swiss_ev_charging.api import _first_localized
