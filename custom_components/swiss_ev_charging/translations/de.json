@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss EV Charging",
+        "description": "Verfügbarkeit von Ladepunkten aus ich-tanke-strom.ch (BFE) verfolgen. Gib eine Position an, um nahe Stationen zu finden, und/oder pinne bestimmte EVSE-IDs.",
+        "data": {
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "radius": "Suchradius (Meter)",
+          "max_stations": "Max. Anzahl naher Stationen",
+          "min_power": "Mindestleistung (kW)",
+          "plug_types": "Steckertyp-Filter (kommagetrennt)",
+          "pinned_evse_ids": "Gepinnte EVSE-IDs (kommagetrennt)",
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "no_selection": "Gib eine Position (Breiten-/Längengrad) oder mindestens eine gepinnte EVSE-ID an."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Swiss EV Charging Optionen",
+        "data": {
+          "radius": "Suchradius (Meter)",
+          "max_stations": "Max. Anzahl naher Stationen",
+          "min_power": "Mindestleistung (kW)",
+          "plug_types": "Steckertyp-Filter (kommagetrennt)",
+          "pinned_evse_ids": "Gepinnte EVSE-IDs (kommagetrennt)",
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "availability": {
+        "name": "Verfügbarkeit",
+        "state": {
+          "available": "Verfügbar",
+          "occupied": "Belegt",
+          "reserved": "Reserviert",
+          "out_of_service": "Ausser Betrieb",
+          "unknown": "Unbekannt"
+        }
+      }
+    },
+    "binary_sensor": {
+      "is_free": {
+        "name": "Ist frei"
+      }
+    }
+  }
+}

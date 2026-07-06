@@ -1,0 +1,66 @@
+{
+  "EVSEData": [
+    {
+      "OperatorID": "CH*ABC",
+      "OperatorName": "Example Operator",
+      "EVSEDataRecord": [
+        {
+          "EvseID": "CH*ABC*E1001",
+          "ChargingStationNames": [
+            { "lang": "de", "value": "Zürich Bahnhofstrasse" }
+          ],
+          "Address": {
+            "Country": "CHE",
+            "City": "Zürich",
+            "Street": "Bahnhofstrasse",
+            "HouseNum": "1",
+            "PostalCode": "8001"
+          },
+          "GeoCoordinates": { "Google": "47.3769 8.5417" },
+          "Plugs": ["Type 2 Outlet", "CCS Combo 2 Plug (Cable Attached)"],
+          "ChargingFacilities": [
+            { "PowerType": "AC_3_PHASE", "Power": 22 },
+            { "PowerType": "DC", "Power": 50 }
+          ]
+        },
+        {
+          "EvseID": "CH*ABC*E1002",
+          "ChargingStationNames": [
+            { "lang": "de", "value": "Zürich Seefeld" }
+          ],
+          "Address": {
+            "Country": "CHE",
+            "City": "Zürich",
+            "Street": "Seefeldstrasse",
+            "HouseNum": "10",
+            "PostalCode": "8008"
+          },
+          "GeoCoordinates": {
+            "DecimalDegree": { "Latitude": 47.355, "Longitude": 8.552 }
+          },
+          "Plugs": ["Type 2 Outlet"],
+          "ChargingFacilities": [{ "PowerType": "AC_3_PHASE", "Power": 11 }]
+        }
+      ]
+    },
+    {
+      "OperatorID": "CH*XYZ",
+      "OperatorName": "Pany Chargers",
+      "EVSEDataRecord": [
+        {
+          "EvseID": "CH*XYZ*E5001",
+          "ChargingStationNames": [{ "lang": "de", "value": "Pany Dorf" }],
+          "Address": {
+            "Country": "CHE",
+            "City": "Pany",
+            "Street": "Dorfstrasse",
+            "PostalCode": "7243"
+          },
+          "GeoCoordinates": { "Google": "46.9375 9.7480" },
+          "Plugs": ["CCS Combo 2 Plug (Cable Attached)"],
+          "ChargingFacilities": [{ "PowerType": "DC", "Power": 150 }]
+        }
+      ]
+    }
+  ]
+}

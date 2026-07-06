@@ -1,0 +1,19 @@
+{
+  "EVSEStatuses": [
+    {
+      "OperatorID": "CH*ABC",
+      "OperatorName": "Example Operator",
+      "EVSEStatusRecord": [
+        { "EvseID": "CH*ABC*E1001", "EVSEStatus": "Available" },
+        { "EvseID": "CH*ABC*E1002", "EVSEStatus": "Occupied" }
+      ]
+    },
+    {
+      "OperatorID": "CH*XYZ",
+      "OperatorName": "Pany Chargers",
+      "EVSEStatusRecord": [
+        { "EvseID": "CH*XYZ*E5001", "EVSEStatus": "OutOfService" }
+      ]
+    }
+  ]
+}
