@@ -28,6 +28,9 @@ CONF_PINNED_EVSE_IDS: Final = "pinned_evse_ids"
 CONF_MIN_POWER: Final = "min_power"
 CONF_PLUG_TYPES: Final = "plug_types"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
+CONF_TAG: Final = "tag"
+CONF_NOTIFY_ON_AVAILABLE: Final = "notify_on_available"
+CONF_NOTIFY_SERVICE: Final = "notify_service"
 
 # Defaults.
 DEFAULT_RADIUS: Final = 1000  # metres
@@ -35,6 +38,11 @@ DEFAULT_MAX_STATIONS: Final = 5
 DEFAULT_MIN_POWER: Final = 0.0  # kW, 0 = no filter
 DEFAULT_SCAN_INTERVAL: Final = 180  # seconds (3 minutes)
 MIN_SCAN_INTERVAL: Final = 60  # seconds, be respectful of the public endpoint
+
+DEFAULT_NOTIFY_ON_AVAILABLE: Final = False
+# Used when notifications are enabled but no explicit service is configured;
+# creates a Home Assistant persistent notification with no extra setup.
+DEFAULT_NOTIFY_SERVICE: Final = "persistent_notification.create"
 
 # Master (static) data is large and rarely changes; refresh it infrequently.
 MASTER_REFRESH_INTERVAL: Final = timedelta(hours=24)

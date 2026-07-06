@@ -44,3 +44,10 @@ class SwissEvIsFreeBinarySensor(SwissEvChargingEntity, BinarySensorEntity):
         if tracked is None:
             return None
         return tracked.state == STATE_AVAILABLE
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Expose the configured tag, if any."""
+        if self.coordinator.tag:
+            return {"tag": self.coordinator.tag}
+        return {}

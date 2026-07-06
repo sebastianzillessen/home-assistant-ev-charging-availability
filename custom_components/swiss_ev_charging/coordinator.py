@@ -19,17 +19,23 @@ from .const import (
     CONF_LONGITUDE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
+    CONF_NOTIFY_ON_AVAILABLE,
+    CONF_NOTIFY_SERVICE,
     CONF_PINNED_EVSE_IDS,
     CONF_PLUG_TYPES,
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
+    CONF_TAG,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
+    DEFAULT_NOTIFY_ON_AVAILABLE,
+    DEFAULT_NOTIFY_SERVICE,
     DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MASTER_REFRESH_INTERVAL,
     MIN_SCAN_INTERVAL,
+    STATE_AVAILABLE,
     STATE_UNKNOWN,
 )
 
@@ -78,6 +84,14 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
             return self.entry.options[key]
         return self.entry.data.get(key, default)
 
+    @property
+    def tag(self) -> str | None:
+        """Return the user-configured tag applied to all tracked stations."""
+        value = self._option(CONF_TAG, None)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
+
     async def _async_update_data(self) -> dict[str, TrackedEvse]:
         """Refresh master data if stale, then poll live status and merge."""
         await self._async_ensure_master_data()
@@ -100,6 +114,10 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
                 distance_m=self._distance(origin, point),
                 is_pinned=evse_id in self._pinned_ids(),
             )
+
+        # self.data still holds the previous refresh here; compare to notify on
+        # stations that just became available.
+        self._notify_newly_available(self.data, result)
         return result
 
     async def _async_ensure_master_data(self) -> None:
@@ -116,6 +134,57 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
                 # No cached data to fall back on: surface the failure.
                 raise UpdateFailed(str(err)) from err
             _LOGGER.warning("Keeping cached master data; refresh failed: %s", err)
+
+    def _notify_newly_available(
+        self,
+        previous: dict[str, TrackedEvse] | None,
+        current: dict[str, TrackedEvse],
+    ) -> None:
+        """Fire a notification for stations that just became available.
+
+        Skips the very first refresh (no ``previous``) to avoid a burst of
+        notifications on startup.
+        """
+        if previous is None:
+            return
+        if not self._option(CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE):
+            return
+        service = (
+            self._option(CONF_NOTIFY_SERVICE, "") or DEFAULT_NOTIFY_SERVICE
+        ).strip()
+        if "." not in service:
+            _LOGGER.warning("Ignoring invalid notify service %r", service)
+            return
+
+        for evse_id, tracked in current.items():
+            was = previous.get(evse_id)
+            if was is None:
+                continue
+            if was.state != STATE_AVAILABLE and tracked.state == STATE_AVAILABLE:
+                self.hass.async_create_task(
+                    self._async_send_notification(service, tracked)
+                )
+
+    async def _async_send_notification(
+        self, service: str, tracked: TrackedEvse
+    ) -> None:
+        """Call the configured notify service for one station."""
+        domain, _, name = service.partition(".")
+        label = tracked.point.name or tracked.point.evse_id
+        message = f"{label} is now available"
+        if self.tag:
+            message = f"[{self.tag}] {message}"
+        try:
+            await self.hass.services.async_call(
+                domain,
+                name,
+                {"message": message, "title": "EV charger available"},
+                blocking=False,
+            )
+        except Exception as err:  # noqa: BLE001 - notification must never break polling
+            _LOGGER.warning(
+                "Failed to notify via %s for %s: %s", service, tracked.point.evse_id, err
+            )
 
     def _select_tracked_ids(self) -> list[str]:
         """Compute the tracked set: pinned IDs plus the N closest matches."""

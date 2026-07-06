@@ -6,7 +6,7 @@ These require the Home Assistant test environment
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -17,10 +17,13 @@ from custom_components.swiss_ev_charging.const import (
     CONF_LONGITUDE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
+    CONF_NOTIFY_ON_AVAILABLE,
     CONF_PINNED_EVSE_IDS,
     CONF_RADIUS,
+    CONF_TAG,
     DOMAIN,
     STATE_AVAILABLE,
+    STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
 )
 from custom_components.swiss_ev_charging.coordinator import SwissEvChargingCoordinator
@@ -94,6 +97,61 @@ async def test_pinned_included_regardless_of_distance(hass) -> None:
     assert "CH*XYZ*E5001" in data
     assert data["CH*XYZ*E5001"].is_pinned is True
     assert data["CH*XYZ*E5001"].state == STATE_OUT_OF_SERVICE
+
+
+@pytest.mark.asyncio
+async def test_tag_is_trimmed(hass) -> None:
+    """The tag option is exposed trimmed (blank -> None)."""
+    entry = _make_entry(
+        hass, {CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"], CONF_TAG: "  Home  "}
+    )
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+    assert coordinator.tag == "Home"
+
+    blank = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"], CONF_TAG: "  "})
+    assert SwissEvChargingCoordinator(hass, blank).tag is None
+
+
+@pytest.mark.asyncio
+async def test_notify_on_available_transition(hass) -> None:
+    """A station transitioning to available triggers exactly one notification."""
+    master = parse_evse_data(load_fixture("evse_data.json"))
+    entry = _make_entry(
+        hass,
+        {
+            CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"],
+            CONF_NOTIFY_ON_AVAILABLE: True,
+            CONF_TAG: "Home",
+        },
+    )
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+
+    with patch.object(
+        hass.services, "async_call", new_callable=AsyncMock
+    ) as mock_call:
+        # First refresh (occupied): no previous data, so no notification.
+        coordinator.data = await _run(
+            hass, coordinator, master, {"CH*ABC*E1001": STATE_OCCUPIED}
+        )
+        await hass.async_block_till_done()
+        assert mock_call.call_count == 0
+
+        # Transition to available: exactly one notification.
+        coordinator.data = await _run(
+            hass, coordinator, master, {"CH*ABC*E1001": STATE_AVAILABLE}
+        )
+        await hass.async_block_till_done()
+        assert mock_call.call_count == 1
+        domain, service, data = mock_call.call_args.args
+        assert (domain, service) == ("persistent_notification", "create")
+        assert "[Home]" in data["message"]
+
+        # Still available: no duplicate notification.
+        coordinator.data = await _run(
+            hass, coordinator, master, {"CH*ABC*E1001": STATE_AVAILABLE}
+        )
+        await hass.async_block_till_done()
+        assert mock_call.call_count == 1
 
 
 @pytest.mark.asyncio
