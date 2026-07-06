@@ -201,3 +201,56 @@ async def test_status_matches_across_evse_id_formats(hass) -> None:
     assert data["CH*ABC*E5"].state == STATE_UNKNOWN  # genuinely absent
     assert coordinator.unmatched_ids == ["CH*ABC*E5"]
     assert coordinator.status_feed_size == 1
+
+
+@pytest.mark.asyncio
+async def test_ecarup_fallback_fills_unknown_states(hass) -> None:
+    """An eCarUp EVSE left unknown by SFOE is filled from the eCarUp public API."""
+    master = {
+        "CH*ECUE123": ChargingPoint(
+            evse_id="CH*ECUE123", latitude=47.38, longitude=8.55
+        ),
+        "CH*ABC*E5": ChargingPoint(evse_id="CH*ABC*E5", latitude=47.38, longitude=8.55),
+    }
+    # SFOE knows nothing about either EVSE.
+    status: dict[str, str] = {}
+    entry = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*ECUE123", "CH*ABC*E5"]})
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+
+    with patch(
+        "custom_components.swiss_ev_charging.coordinator.async_resolve_ecarup_states",
+        return_value={"CH*ECUE123": STATE_AVAILABLE},
+    ) as resolver:
+        data = await _run(hass, coordinator, master, status)
+
+    # Only the eCarUp EVSE (with coordinates) was offered to the resolver.
+    targets = resolver.call_args.args[1]
+    assert [t[0] for t in targets] == ["CH*ECUE123"]
+
+    assert data["CH*ECUE123"].state == STATE_AVAILABLE  # filled from eCarUp
+    assert data["CH*ABC*E5"].state == STATE_UNKNOWN  # non-eCarUp, still unknown
+    assert coordinator.ecarup_resolved_ids == ["CH*ECUE123"]
+    # The filled EVSE is no longer reported as unmatched.
+    assert "CH*ECUE123" not in coordinator.unmatched_ids
+    assert "CH*ABC*E5" in coordinator.unmatched_ids
+
+
+@pytest.mark.asyncio
+async def test_ecarup_fallback_failure_leaves_unknown(hass) -> None:
+    """A failing eCarUp fallback never breaks the poll; states stay unknown."""
+    master = {
+        "CH*ECUE123": ChargingPoint(
+            evse_id="CH*ECUE123", latitude=47.38, longitude=8.55
+        ),
+    }
+    entry = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*ECUE123"]})
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+
+    with patch(
+        "custom_components.swiss_ev_charging.coordinator.async_resolve_ecarup_states",
+        side_effect=RuntimeError("boom"),
+    ):
+        data = await _run(hass, coordinator, master, {})
+
+    assert data["CH*ECUE123"].state == STATE_UNKNOWN
+    assert coordinator.ecarup_resolved_ids == []
