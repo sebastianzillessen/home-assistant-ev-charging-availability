@@ -28,15 +28,70 @@ per station. The large master file is cached and refreshed only occasionally.
 
 ### eCarUp live-status fallback
 
-The SFOE feed reports `Unknown` for a large share of **eCarUp** charging points
-(`CH*ECU…`) even when eCarUp itself knows the live state. For any tracked eCarUp
-station the SFOE feed leaves `unknown`, the integration fills the gap from
-eCarUp's own **key-less public map API** (`www.ecarup.com/api`). It matches a
-station either by its roaming id (`Hubject.ID`, when eCarUp exposes it) or, as a
-fallback, by the nearest station coordinate — but only adopts a state when that
-station's connectors unanimously agree, so an ambiguous multi-connector site
-stays `unknown` rather than showing a guess. This is best-effort: any failure of
-the eCarUp API simply leaves those stations `unknown`, exactly as before.
+The SFOE feed reports `Unknown` live status for a large share of **eCarUp**
+charging points (`CH*ECU…`) even when eCarUp itself knows the state. eCarUp runs
+its own **key-less public map API** (`www.ecarup.com/api`) that does expose the
+live state, so for any tracked eCarUp station the SFOE feed leaves `unknown`, the
+integration fills the gap from there.
+
+How it works, per unresolved eCarUp station:
+
+1. **Query** the eCarUp map for the area around the station (one request covering
+   all tracked eCarUp stations), then fetch per-connector detail for the
+   candidates nearby.
+2. **Match** the station either by its roaming id (`Hubject.ID`, when eCarUp
+   exposes it — the authoritative join) or, as a fallback, by the **nearest
+   station coordinate**.
+3. **Adopt** a state only when it is unambiguous: an exact `Hubject.ID` match is
+   used directly; a coordinate match is used only when that station's connectors
+   **unanimously agree**. An ambiguous multi-connector site stays `unknown`
+   rather than showing a guess.
+
+The eCarUp connector state maps to the availability states as:
+`Free → available`, `Occupied`/`Car connected → occupied`, `Reserved →
+reserved`, `Maintenance → maintenance`, `Offline → out_of_service`,
+`Unknown → unknown`.
+
+This is **best-effort** and runs only for eCarUp stations the SFOE feed could not
+resolve: any failure of the eCarUp API simply leaves those stations `unknown`,
+exactly as before. It fires before the "became available" notification, so an
+eCarUp charger going free still notifies.
+
+### Coverage and known gaps by operator
+
+Most operators report reliable live status through the SFOE feed. A few do not —
+they report `Unknown` (or are absent from the status feed) for many or all of
+their points. The table below is a snapshot of the country-wide feed (~18,900
+charging points, ~20% of which report no live status) to gauge where extra
+integration effort would pay off. "Share" is the operator's fraction of all
+Swiss charging points; "No live status" is how many of *its* points the SFOE feed
+leaves dark.
+
+| Operator | Share of all points | No live status | Recoverable without an API key? |
+| --- | --: | --: | --- |
+| **eCarUp** | ~35% | ~32% | ✅ **Yes — implemented** (public map API) |
+| Move | ~13% | ~22% | ❌ Live data is app-only; no public endpoint found |
+| swisscharge | ~13% | ~6% | — mostly healthy |
+| Shell Recharge | ~6% | ~3% | — mostly healthy |
+| AVIA VOLT | ~3% | ~14% | ❌ No public availability endpoint found |
+| Tesla | ~2% | **100%** | ❌ Availability API is access-controlled (HTTP 403) |
+| Power Up | ~1% | ~16% | ❌ No public endpoint found |
+| Saascharge | ~1% | ~23% | ❌ No public endpoint found |
+| PLUG N ROLL (Repower) | ~1% | **100%** | ❌ No reachable public endpoint |
+| evpass (Green Motion) | <1% | ~95% | ❌ Map is behind authentication |
+| AIL | <1% | **100%** | ❌ Not on a recoverable backend |
+
+Operators reporting essentially complete live status (≈0% dark) include GoFast,
+IONITY, Electra, Lidl, Plenitude, Chargepoint and Fastned.
+
+**Why eCarUp was the one worth doing:** it is both the largest operator (~35% of
+all Swiss points) *and* the single biggest source of missing status (~56% of all
+dark points nationwide), and — uniquely among the dark operators — it exposes a
+genuinely public, key-less map backend. The others either never publish live
+status to the roaming/SFOE layer at all (Tesla, PLUG N ROLL, AIL) or keep it
+behind their own app/authentication (Move, evpass, AVIA, Power Up, Saascharge),
+so recovering them would require per-operator reverse engineering with uncertain,
+fragile results.
 
 ## Installation
 
