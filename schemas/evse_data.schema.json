@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "EVSEData": {
+      "items": {
+        "properties": {
+          "EVSEDataRecord": {
+            "items": {
+              "properties": {
+                "Accessibility": {
+                  "type": "string"
+                },
+                "AdditionalInfo": {
+                  "type": "null"
+                },
+                "Address": {
+                  "properties": {
+                    "City": {
+                      "type": "string"
+                    },
+                    "Country": {
+                      "type": "string"
+                    },
+                    "Floor": {
+                      "type": "null"
+                    },
+                    "PostalCode": {
+                      "type": "string"
+                    },
+                    "Region": {
+                      "type": "null"
+                    },
+                    "Street": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "City",
+                    "Country",
+                    "PostalCode",
+                    "Street"
+                  ],
+                  "type": "object"
+                },
+                "ChargingFacilities": {
+                  "items": {
+                    "properties": {
+                      "Amperage": {
+                        "type": "string"
+                      },
+                      "Voltage": {
+                        "type": "string"
+                      },
+                      "power": {
+                        "type": "string"
+                      },
+                      "powertype": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "Amperage",
+                      "Voltage",
+                      "power",
+                      "powertype"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "ChargingStationNames": {
+                  "items": {
+                    "properties": {
+                      "lang": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "lang",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "EvseID": {
+                  "type": "string"
+                },
+                "GeoChargingPointEntrance": {
+                  "properties": {
+                    "Google": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Google"
+                  ],
+                  "type": "object"
+                },
+                "GeoCoordinates": {
+                  "properties": {
+                    "Google": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Google"
+                  ],
+                  "type": "object"
+                },
+                "IsOpen24Hours": {
+                  "type": "boolean"
+                },
+                "Plugs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "Address",
+                "ChargingFacilities",
+                "ChargingStationNames",
+                "EvseID",
+                "GeoCoordinates",
+                "Plugs"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "EVSEDataRecord"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "EVSEData"
+  ],
+  "type": "object"
+}

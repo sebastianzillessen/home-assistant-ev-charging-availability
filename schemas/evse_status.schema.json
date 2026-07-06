@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "EVSEStatuses": {
+      "items": {
+        "properties": {
+          "EVSEStatusRecord": {
+            "items": {
+              "properties": {
+                "EVSEStatus": {
+                  "type": "string"
+                },
+                "EvseID": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "EVSEStatus",
+                "EvseID"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "EVSEStatusRecord"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "EVSEStatuses"
+  ],
+  "type": "object"
+}
