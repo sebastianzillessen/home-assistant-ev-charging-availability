@@ -1,0 +1,13 @@
+{
+  "EVSEStatuses": [
+    {
+      "EVSEStatusRecord": [
+        { "EvseID": "CH*CCI*E22078", "EVSEStatus": "Unknown" },
+        { "EvseID": "CH*CCC*E50084", "EVSEStatus": "Unknown" },
+        { "EvseID": "CH*CCC*E50085", "EVSEStatus": "Unknown" },
+        { "EvseID": "CH*SOC*E5106*1A", "EVSEStatus": "Available" },
+        { "EvseID": "CH*SOC*E5106*1B", "EVSEStatus": "Occupied" }
+      ]
+    }
+  ]
+}

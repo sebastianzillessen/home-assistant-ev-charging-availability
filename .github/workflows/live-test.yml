@@ -1,0 +1,26 @@
+name: Live data test
+
+# Downloads the real SFOE feeds and parses them. Kept separate from the main
+# test workflow so a flaky external endpoint never blocks a pull request.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  live:
+    name: Parse live SFOE feeds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_test.txt
+      - name: Run live tests
+        env:
+          RUN_LIVE_TESTS: "1"
+        run: pytest tests/test_live.py -v
