@@ -79,7 +79,7 @@ pinned IDs and the interval can be changed later via the integration's
 For each tracked charging point you get:
 
 - **Availability sensor** (enum): `available` / `occupied` / `reserved` /
-  `out_of_service` / `unknown`, with attributes `operator`, `plug_types`,
+  `out_of_service` / `maintenance` / `unknown`, with attributes `operator`, `plug_types`,
   `max_power_kw`, `distance_km`, `address`, `latitude`, `longitude`, `is_pinned`.
 - **"Is free" binary sensor**: on when the point is available — convenient for
   automations.
