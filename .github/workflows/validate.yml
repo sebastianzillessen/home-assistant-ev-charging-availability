@@ -22,3 +22,7 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # 'brands' requires a separate PR to the home-assistant/brands repo and
+          # 'topics' requires GitHub repo topics; both are default-store eligibility
+          # checks, not needed to install as a custom repository.
+          ignore: brands topics

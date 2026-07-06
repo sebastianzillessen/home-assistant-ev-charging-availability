@@ -94,8 +94,11 @@ class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
         home_lon = self.hass.config.longitude
         schema = vol.Schema(
             {
-                vol.Optional(CONF_LATITUDE, default=home_lat): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=home_lon): cv.longitude,
+                # Location is optional (pinned-only setups clear it), so allow None.
+                vol.Optional(CONF_LATITUDE, default=home_lat): vol.Any(None, cv.latitude),
+                vol.Optional(CONF_LONGITUDE, default=home_lon): vol.Any(
+                    None, cv.longitude
+                ),
                 vol.Optional(CONF_RADIUS, default=DEFAULT_RADIUS): vol.All(
                     vol.Coerce(int), vol.Range(min=0)
                 ),
