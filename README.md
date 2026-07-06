@@ -26,6 +26,18 @@ integration downloads the live status file **once per polling interval** and
 merges it (by `EvseID`) onto locally cached master data — it does **not** poll
 per station. The large master file is cached and refreshed only occasionally.
 
+### eCarUp live-status fallback
+
+The SFOE feed reports `Unknown` for a large share of **eCarUp** charging points
+(`CH*ECU…`) even when eCarUp itself knows the live state. For any tracked eCarUp
+station the SFOE feed leaves `unknown`, the integration fills the gap from
+eCarUp's own **key-less public map API** (`www.ecarup.com/api`). It matches a
+station either by its roaming id (`Hubject.ID`, when eCarUp exposes it) or, as a
+fallback, by the nearest station coordinate — but only adopts a state when that
+station's connectors unanimously agree, so an ambiguous multi-connector site
+stays `unknown` rather than showing a guess. This is best-effort: any failure of
+the eCarUp API simply leaves those stations `unknown`, exactly as before.
+
 ## Installation
 
 ### HACS (recommended)
