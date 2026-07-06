@@ -12,8 +12,13 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     CONF_LATITUDE,
@@ -51,6 +56,30 @@ def _clean_id_list(raw: Any) -> list[str]:
 def _clean_plug_list(raw: Any) -> list[str]:
     """Normalise a comma separated plug-type filter into a list."""
     return _clean_id_list(raw)
+
+
+def _notify_service_selector(hass: HomeAssistant, current: str) -> SelectSelector:
+    """Build a dropdown of the currently registered ``notify.*`` services.
+
+    ``custom_value`` keeps free-text entry possible (e.g. a service that is not
+    loaded yet, or ``persistent_notification.create``); leaving it blank uses the
+    persistent-notification fallback.
+    """
+    options = sorted(
+        f"notify.{service}"
+        for service in hass.services.async_services().get("notify", {})
+    )
+    # Keep an existing custom value selectable even if it is not a notify.* service.
+    if current and current not in options:
+        options.append(current)
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=options,
+            mode=SelectSelectorMode.DROPDOWN,
+            custom_value=True,
+            sort=True,
+        )
+    )
 
 
 class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -128,7 +157,9 @@ class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_NOTIFY_ON_AVAILABLE, default=DEFAULT_NOTIFY_ON_AVAILABLE
                 ): bool,
-                vol.Optional(CONF_NOTIFY_SERVICE, default=""): str,
+                vol.Optional(
+                    CONF_NOTIFY_SERVICE, default=""
+                ): _notify_service_selector(self.hass, ""),
             }
         )
         return self.async_show_form(
@@ -211,7 +242,9 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                 vol.Optional(
                     CONF_NOTIFY_SERVICE,
                     default=current.get(CONF_NOTIFY_SERVICE, "") or "",
-                ): str,
+                ): _notify_service_selector(
+                    self.hass, current.get(CONF_NOTIFY_SERVICE, "") or ""
+                ),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
