@@ -137,6 +137,38 @@ def parse_evse_status(payload: dict) -> dict[str, str]:
     return statuses
 
 
+def normalize_evse_id(evse_id: str) -> str:
+    """Canonicalise an ``EvseID`` for tolerant matching across the two feeds.
+
+    Master (EVSEData) and live (EVSEStatus) records are joined by ``EvseID``, but
+    some operators - eCarUp (``CH*ECU*...``) in particular - format the same id
+    differently between the files: varying case, or the ``*``/``-`` separators.
+    Reducing to upper-case alphanumerics lets the merge fall back to a match when
+    the exact strings differ, so those stations show live availability instead of
+    ``unknown``.
+    """
+    return "".join(ch for ch in evse_id.upper() if ch.isalnum())
+
+
+def index_status_by_normalized(statuses: dict[str, str]) -> dict[str, str]:
+    """Index statuses by :func:`normalize_evse_id`, dropping ambiguous keys.
+
+    If two differently-formatted ids collapse to the same normalized key but carry
+    conflicting states, the key is dropped so the fallback never guesses.
+    """
+    index: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for evse_id, state in statuses.items():
+        key = normalize_evse_id(evse_id)
+        if key in index and index[key] != state:
+            ambiguous.add(key)
+        else:
+            index.setdefault(key, state)
+    for key in ambiguous:
+        index.pop(key, None)
+    return index
+
+
 def _as_list(value: object) -> list:
     """Normalise an OICP value that may be a single object or a list into a list.
 

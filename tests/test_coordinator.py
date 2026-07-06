@@ -14,7 +14,11 @@ from pytest_homeassistant_custom_component.common import (
     async_mock_service,
 )
 
-from custom_components.swiss_ev_charging.api import parse_evse_data, parse_evse_status
+from custom_components.swiss_ev_charging.api import (
+    ChargingPoint,
+    parse_evse_data,
+    parse_evse_status,
+)
 from custom_components.swiss_ev_charging.const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -28,6 +32,7 @@ from custom_components.swiss_ev_charging.const import (
     STATE_AVAILABLE,
     STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
+    STATE_UNKNOWN,
 )
 from custom_components.swiss_ev_charging.coordinator import SwissEvChargingCoordinator
 
@@ -174,3 +179,25 @@ async def test_min_power_filter(hass) -> None:
 
     assert "CH*ABC*E1001" in data  # 50 kW DC facility
     assert "CH*ABC*E1002" not in data  # only 11 kW
+
+
+@pytest.mark.asyncio
+async def test_status_matches_across_evse_id_formats(hass) -> None:
+    """A status whose EvseID is formatted differently still resolves (eCarUp)."""
+    master = {
+        "CH*ECU*E9": ChargingPoint(
+            evse_id="CH*ECU*E9", latitude=47.0, longitude=8.0
+        ),
+        "CH*ABC*E5": ChargingPoint(evse_id="CH*ABC*E5"),
+    }
+    # eCarUp reports the same EVSE with a different id format; ABC is absent.
+    status = {"checue9": STATE_AVAILABLE}
+    entry = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*ECU*E9", "CH*ABC*E5"]})
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+
+    data = await _run(hass, coordinator, master, status)
+
+    assert data["CH*ECU*E9"].state == STATE_AVAILABLE  # matched via normalization
+    assert data["CH*ABC*E5"].state == STATE_UNKNOWN  # genuinely absent
+    assert coordinator.unmatched_ids == ["CH*ABC*E5"]
+    assert coordinator.status_feed_size == 1

@@ -27,7 +27,9 @@ class SwissEvChargingEntity(CoordinatorEntity[SwissEvChargingCoordinator]):
             name=point.name or evse_id,
             manufacturer=point.operator or "ich-tanke-strom",
             model="EV charging point",
-            configuration_url=station_map_url(point.latitude, point.longitude),
+            configuration_url=station_map_url(
+                point.latitude, point.longitude, evse_id
+            ),
         )
 
     @property

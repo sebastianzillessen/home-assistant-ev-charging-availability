@@ -7,6 +7,8 @@ Assistant test environment.
 from __future__ import annotations
 
 from custom_components.swiss_ev_charging.api import (
+    index_status_by_normalized,
+    normalize_evse_id,
     parse_evse_data,
     parse_evse_status,
 )
@@ -15,6 +17,26 @@ from custom_components.swiss_ev_charging.const import (
     STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
 )
+
+
+def test_normalize_evse_id_ignores_case_and_separators() -> None:
+    """Differently-formatted ids for the same EVSE normalize to one key."""
+    assert normalize_evse_id("CH*ECU*E1234") == "CHECUE1234"
+    assert normalize_evse_id("ch-ecu-e1234") == "CHECUE1234"
+    assert normalize_evse_id("CH*ECU*E1234") == normalize_evse_id("checue1234")
+
+
+def test_index_status_by_normalized_matches_and_drops_conflicts() -> None:
+    """The fallback index matches across formats but never guesses on conflicts."""
+    index = index_status_by_normalized(
+        {
+            "CH*ECU*E1": STATE_AVAILABLE,
+            "CH*XYZ*E2": STATE_OCCUPIED,
+            "CH-XYZ-E2": STATE_AVAILABLE,  # conflicting duplicate -> dropped
+        }
+    )
+    assert index["CHECUE1"] == STATE_AVAILABLE
+    assert "CHXYZE2" not in index
 
 
 def test_parse_evse_data_google_coordinates(evse_data: dict) -> None:

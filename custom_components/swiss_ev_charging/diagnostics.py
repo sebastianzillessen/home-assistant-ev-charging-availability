@@ -18,6 +18,10 @@ async def async_get_config_entry_diagnostics(
     return {
         "options": dict(entry.options),
         "tracked_ids": coordinator.tracked_ids,
+        # How many EVSEs the live-status feed carried, and which tracked stations
+        # were absent from it (these surface as ``unknown``).
+        "status_feed_size": coordinator.status_feed_size,
+        "unmatched_ids": coordinator.unmatched_ids,
         "tracked": {
             evse_id: {
                 "state": tracked.state,
