@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="custom_components/swiss_ev_charging/brand/logo@2x.png" alt="Swiss EV Charging" width="440">
+</p>
+
 # Swiss EV Charging (ich-tanke-strom) — Home Assistant Integration
 
 Home Assistant integration for Switzerland's official real-time EV charging

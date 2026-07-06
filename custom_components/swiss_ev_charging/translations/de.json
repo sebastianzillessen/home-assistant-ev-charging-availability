@@ -15,7 +15,7 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
           "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
-          "notify_service": "Notify-Service (z. B. notify.mobile_app_x; leer = persistente Benachrichtigung)"
+          "notify_service": "Notify-Ziel (beliebige Notify-Entität; leer = persistente Benachrichtigung)"
         }
       }
     },
@@ -36,7 +36,7 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
           "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
-          "notify_service": "Notify-Service (z. B. notify.mobile_app_x; leer = persistente Benachrichtigung)"
+          "notify_service": "Notify-Ziel (beliebige Notify-Entität; leer = persistente Benachrichtigung)"
         }
       }
     }
