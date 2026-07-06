@@ -50,6 +50,9 @@ Swiss EV Charging**. You can track stations two ways (combine both):
 | Plug type filter | Comma-separated substrings, e.g. `CCS` |
 | Pinned EVSE IDs | Comma-separated `EvseID`s to always track (e.g. the charger near your flat) |
 | Polling interval (s) | Default 180 s; minimum 60 s |
+| Tag | Free-text label applied to every station of this entry (exposed as a `tag` attribute) |
+| Notify when available | Toggle: send a notification when a tracked station becomes available |
+| Notify service | Which `notify.*` service to call (blank = a Home Assistant persistent notification) |
 
 At least a location **or** one pinned EVSE ID is required. Radius, filters,
 pinned IDs and the interval can be changed later via the integration's
@@ -111,6 +114,16 @@ python scripts/generate_evse_schema.py
 
 > The auto-PR needs "Allow GitHub Actions to create and approve pull requests"
 > enabled under **Settings → Actions → General → Workflow permissions**.
+
+### Releases
+
+The `Release` workflow tags builds from the `version` in `manifest.json`:
+
+- push to `main` → a GitHub release `v<version>` (created once per version bump)
+- push to any other branch → a **pre-release** `v<version>-<branch>.<run>`
+
+Bump `manifest.json` `version` to cut a new stable release on the next merge to
+`main`.
 
 ## Data source
 

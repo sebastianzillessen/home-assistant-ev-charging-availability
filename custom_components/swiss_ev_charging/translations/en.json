@@ -12,7 +12,10 @@
           "min_power": "Minimum power (kW)",
           "plug_types": "Plug type filter (comma separated)",
           "pinned_evse_ids": "Pinned EVSE IDs (comma separated)",
-          "scan_interval": "Polling interval (seconds)"
+          "scan_interval": "Polling interval (seconds)",
+          "tag": "Tag (applied to all stations of this entry)",
+          "notify_on_available": "Notify when a station becomes available",
+          "notify_service": "Notify service (e.g. notify.mobile_app_x; blank = persistent notification)"
         }
       }
     },
@@ -30,7 +33,10 @@
           "min_power": "Minimum power (kW)",
           "plug_types": "Plug type filter (comma separated)",
           "pinned_evse_ids": "Pinned EVSE IDs (comma separated)",
-          "scan_interval": "Polling interval (seconds)"
+          "scan_interval": "Polling interval (seconds)",
+          "tag": "Tag (applied to all stations of this entry)",
+          "notify_on_available": "Notify when a station becomes available",
+          "notify_service": "Notify service (e.g. notify.mobile_app_x; blank = persistent notification)"
         }
       }
     }

@@ -12,7 +12,10 @@
           "min_power": "Mindestleistung (kW)",
           "plug_types": "Steckertyp-Filter (kommagetrennt)",
           "pinned_evse_ids": "Gepinnte EVSE-IDs (kommagetrennt)",
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
+          "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
+          "notify_service": "Notify-Service (z. B. notify.mobile_app_x; leer = persistente Benachrichtigung)"
         }
       }
     },
@@ -30,7 +33,10 @@
           "min_power": "Mindestleistung (kW)",
           "plug_types": "Steckertyp-Filter (kommagetrennt)",
           "pinned_evse_ids": "Gepinnte EVSE-IDs (kommagetrennt)",
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
+          "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
+          "notify_service": "Notify-Service (z. B. notify.mobile_app_x; leer = persistente Benachrichtigung)"
         }
       }
     }
