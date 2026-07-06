@@ -1,14 +1,15 @@
 """Build a deep link to a charging station on the Swiss geoportal map.
 
-The device's ``configuration_url`` points at ``map.geo.admin.ch`` centred and
-zoomed on the station, with a crosshair marker and the official charging-station
-layer enabled. The geoportal centres the map in LV95 (EPSG:2056) easting/northing,
-so the station's WGS84 coordinates are converted first.
+The device's ``configuration_url`` opens ``map.geo.admin.ch`` centred and zoomed
+on the station, with a crosshair marker, the official charging-station layer, and
+- when the EVSE id is known - the station preselected with its info panel open.
+
+The current geoportal viewer is a single-page app that reads its state from the
+URL *hash* (``#/map?...``) and centres the map in LV95 (EPSG:2056) easting/
+northing, so the station's WGS84 coordinates are converted first.
 """
 
 from __future__ import annotations
-
-from urllib.parse import urlencode
 
 from .const import (
     GEOADMIN_LADESTELLEN_LAYER,
@@ -48,23 +49,37 @@ def wgs84_to_lv95(latitude: float, longitude: float) -> tuple[float, float]:
 
 
 def station_map_url(
-    latitude: float | None, longitude: float | None
+    latitude: float | None,
+    longitude: float | None,
+    evse_id: str | None = None,
 ) -> str:
     """Return a geoportal deep link centred on the station, or the homepage.
 
     When coordinates are unknown, fall back to the ich-tanke-strom homepage so the
-    device link is always useful.
+    device link is always useful. When the EVSE id is known it is used to
+    preselect the station and open its feature-info panel.
+
+    The geoportal reads these values from the URL hash and does not expect them
+    percent-encoded (``*``/``,``/``@`` appear literally), so the query is built by
+    hand rather than via ``urlencode``.
     """
     if latitude is None or longitude is None:
         return ICH_TANKE_STROM_URL
 
     easting, northing = wgs84_to_lv95(latitude, longitude)
-    query = urlencode(
-        {
-            "center": f"{easting:.0f},{northing:.0f}",
-            "z": GEOADMIN_MAP_ZOOM,
-            "crosshair": "marker",
-            "layers": GEOADMIN_LADESTELLEN_LAYER,
-        }
-    )
-    return f"{GEOADMIN_MAP_URL}?{query}"
+    center = f"{easting:.2f},{northing:.2f}"
+    marker = f"marker,{easting:.0f},{northing:.0f}"
+    layers = GEOADMIN_LADESTELLEN_LAYER
+
+    params = [
+        f"center={center}",
+        f"z={GEOADMIN_MAP_ZOOM}",
+        f"crosshair={marker}",
+    ]
+    if evse_id:
+        layers = f"{layers}@features={evse_id}"
+    params.append(f"layers={layers}")
+    if evse_id:
+        params.append("featureInfo=bottomPanel")
+
+    return f"{GEOADMIN_MAP_URL}#/map?" + "&".join(params)

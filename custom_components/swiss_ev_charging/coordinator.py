@@ -13,7 +13,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance
 
-from .api import ChargingPoint, SwissEvChargingApi, SwissEvChargingApiError
+from .api import (
+    ChargingPoint,
+    SwissEvChargingApi,
+    SwissEvChargingApiError,
+    index_status_by_normalized,
+    normalize_evse_id,
+)
 from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -63,6 +69,10 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         # The set of EVSE IDs we expose as entities; fixed after the first refresh
         # so the entity list is stable across reloads.
         self.tracked_ids: list[str] = []
+        # Diagnostics: size of the last live-status feed, and the tracked IDs that
+        # had no live status in it (surfaced as ``unknown``).
+        self.status_feed_size: int = 0
+        self.unmatched_ids: list[str] = []
 
         super().__init__(
             hass,
@@ -103,15 +113,41 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         if not self.tracked_ids:
             self.tracked_ids = self._select_tracked_ids()
 
+        # Fallback index for operators (e.g. eCarUp) whose EvseID is formatted
+        # differently in the master and status feeds; only used on an exact miss.
+        status_by_norm = index_status_by_normalized(statuses)
+        self.status_feed_size = len(statuses)
+        unmatched: list[str] = []
+
         origin = self._origin()
         result: dict[str, TrackedEvse] = {}
         for evse_id in self.tracked_ids:
             point = self._master.get(evse_id) or ChargingPoint(evse_id=evse_id)
+            state = statuses.get(evse_id)
+            if state is None:
+                state = status_by_norm.get(normalize_evse_id(evse_id))
+                if state is not None:
+                    _LOGGER.debug(
+                        "Matched %s to live status via normalized EvseID", evse_id
+                    )
+            if state is None:
+                state = STATE_UNKNOWN
+                unmatched.append(evse_id)
             result[evse_id] = TrackedEvse(
                 point=point,
-                state=statuses.get(evse_id, STATE_UNKNOWN),
+                state=state,
                 distance_m=self._distance(origin, point),
                 is_pinned=evse_id in self._pinned_ids(),
+            )
+
+        self.unmatched_ids = unmatched
+        if unmatched:
+            _LOGGER.debug(
+                "%d/%d tracked stations have no live status in the SFOE feed "
+                "(shown as unknown): %s",
+                len(unmatched),
+                len(self.tracked_ids),
+                ", ".join(unmatched),
             )
 
         # self.data still holds the previous refresh here; compare to notify on
