@@ -92,6 +92,26 @@ pytest
 CI runs Home Assistant's `hassfest`, HACS validation and the pytest suite on
 every push and pull request.
 
+### Upstream schema drift detection
+
+The upstream OICP feeds occasionally change shape (e.g. a field serialised as an
+object instead of an array, or a numeric value delivered as a string).
+`scripts/generate_evse_schema.py` downloads both feeds and writes an inferred
+JSON Schema to `schemas/`. The `Update feed schema` workflow runs weekly (and on
+demand): if the regenerated schema differs from what is committed, it opens a
+pull request and requests your review, so a breaking upstream change is caught
+before it reaches users.
+
+Regenerate locally with:
+
+```bash
+pip install genson
+python scripts/generate_evse_schema.py
+```
+
+> The auto-PR needs "Allow GitHub Actions to create and approve pull requests"
+> enabled under **Settings → Actions → General → Workflow permissions**.
+
 ## Data source
 
 Open data from the Swiss Federal Office of Energy (SFOE) via
