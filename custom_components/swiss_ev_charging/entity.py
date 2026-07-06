@@ -7,6 +7,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import SwissEvChargingCoordinator, TrackedEvse
+from .map_link import station_map_url
 
 
 class SwissEvChargingEntity(CoordinatorEntity[SwissEvChargingCoordinator]):
@@ -26,7 +27,7 @@ class SwissEvChargingEntity(CoordinatorEntity[SwissEvChargingCoordinator]):
             name=point.name or evse_id,
             manufacturer=point.operator or "ich-tanke-strom",
             model="EV charging point",
-            configuration_url="https://www.ich-tanke-strom.ch",
+            configuration_url=station_map_url(point.latitude, point.longitude),
         )
 
     @property

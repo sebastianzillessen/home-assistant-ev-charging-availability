@@ -19,6 +19,16 @@ EVSE_STATUS_URL: Final = (
     "/status/oicp/ch.bfe.ladestellen-elektromobilitaet.json"
 )
 
+# Public homepage, used as the device link when a station has no coordinates.
+ICH_TANKE_STROM_URL: Final = "https://www.ich-tanke-strom.ch"
+
+# Swiss federal geoportal map viewer and the charging-stations layer. A device's
+# configuration URL deep-links here, centred and zoomed on the station.
+GEOADMIN_MAP_URL: Final = "https://map.geo.admin.ch/"
+GEOADMIN_LADESTELLEN_LAYER: Final = "ch.bfe.ladestellen-elektromobilitaet"
+# Zoom level for the deep link: high enough to show the individual station.
+GEOADMIN_MAP_ZOOM: Final = 13
+
 # Configuration / options keys.
 CONF_LATITUDE: Final = "latitude"
 CONF_LONGITUDE: Final = "longitude"
