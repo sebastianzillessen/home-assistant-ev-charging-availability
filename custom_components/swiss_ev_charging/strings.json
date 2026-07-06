@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss EV Charging",
+        "description": "Track charging point availability from ich-tanke-strom.ch (SFOE). Provide a location to discover nearby stations, and/or pin specific EVSE IDs.",
+        "data": {
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "radius": "Search radius (metres)",
+          "max_stations": "Max nearby stations",
+          "min_power": "Minimum power (kW)",
+          "plug_types": "Plug type filter (comma separated)",
+          "pinned_evse_ids": "Pinned EVSE IDs (comma separated)",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "no_selection": "Provide a location (latitude/longitude) or at least one pinned EVSE ID."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Swiss EV Charging options",
+        "data": {
+          "radius": "Search radius (metres)",
+          "max_stations": "Max nearby stations",
+          "min_power": "Minimum power (kW)",
+          "plug_types": "Plug type filter (comma separated)",
+          "pinned_evse_ids": "Pinned EVSE IDs (comma separated)",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "availability": {
+        "name": "Availability",
+        "state": {
+          "available": "Available",
+          "occupied": "Occupied",
+          "reserved": "Reserved",
+          "out_of_service": "Out of service",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "binary_sensor": {
+      "is_free": {
+        "name": "Is free"
+      }
+    }
+  }
+}

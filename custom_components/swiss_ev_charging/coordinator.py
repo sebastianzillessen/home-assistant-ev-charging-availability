@@ -1,0 +1,185 @@
+"""Data update coordinator for the Swiss EV Charging integration."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import timedelta
+import logging
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
+from homeassistant.util.location import distance
+
+from .api import ChargingPoint, SwissEvChargingApi, SwissEvChargingApiError
+from .const import (
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_MAX_STATIONS,
+    CONF_MIN_POWER,
+    CONF_PINNED_EVSE_IDS,
+    CONF_PLUG_TYPES,
+    CONF_RADIUS,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_MAX_STATIONS,
+    DEFAULT_MIN_POWER,
+    DEFAULT_RADIUS,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    MASTER_REFRESH_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    STATE_UNKNOWN,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class TrackedEvse:
+    """A tracked charging point combining master data, live state and distance."""
+
+    point: ChargingPoint
+    state: str
+    distance_m: float | None
+    is_pinned: bool
+
+
+class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
+    """Download live status each poll and merge it onto cached master data."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialise the coordinator from a config entry."""
+        self.entry = entry
+        self.api = SwissEvChargingApi(async_get_clientsession(hass))
+        self._master: dict[str, ChargingPoint] = {}
+        self._master_refreshed_at = None
+        # The set of EVSE IDs we expose as entities; fixed after the first refresh
+        # so the entity list is stable across reloads.
+        self.tracked_ids: list[str] = []
+
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=self._scan_interval),
+        )
+
+    @property
+    def _scan_interval(self) -> int:
+        """Return the effective poll interval in seconds (clamped to a minimum)."""
+        configured = self._option(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        return max(int(configured), MIN_SCAN_INTERVAL)
+
+    def _option(self, key: str, default):
+        """Read a value preferring options over the original config data."""
+        if key in self.entry.options:
+            return self.entry.options[key]
+        return self.entry.data.get(key, default)
+
+    async def _async_update_data(self) -> dict[str, TrackedEvse]:
+        """Refresh master data if stale, then poll live status and merge."""
+        await self._async_ensure_master_data()
+
+        try:
+            statuses = await self.api.async_get_status()
+        except SwissEvChargingApiError as err:
+            raise UpdateFailed(str(err)) from err
+
+        if not self.tracked_ids:
+            self.tracked_ids = self._select_tracked_ids()
+
+        origin = self._origin()
+        result: dict[str, TrackedEvse] = {}
+        for evse_id in self.tracked_ids:
+            point = self._master.get(evse_id) or ChargingPoint(evse_id=evse_id)
+            result[evse_id] = TrackedEvse(
+                point=point,
+                state=statuses.get(evse_id, STATE_UNKNOWN),
+                distance_m=self._distance(origin, point),
+                is_pinned=evse_id in self._pinned_ids(),
+            )
+        return result
+
+    async def _async_ensure_master_data(self) -> None:
+        """Download the static master file on first use or when it is stale."""
+        now = dt_util.utcnow()
+        if self._master and self._master_refreshed_at is not None:
+            if now - self._master_refreshed_at < MASTER_REFRESH_INTERVAL:
+                return
+        try:
+            self._master = await self.api.async_get_master_data()
+            self._master_refreshed_at = now
+        except SwissEvChargingApiError as err:
+            if not self._master:
+                # No cached data to fall back on: surface the failure.
+                raise UpdateFailed(str(err)) from err
+            _LOGGER.warning("Keeping cached master data; refresh failed: %s", err)
+
+    def _select_tracked_ids(self) -> list[str]:
+        """Compute the tracked set: pinned IDs plus the N closest matches."""
+        pinned = self._pinned_ids()
+        origin = self._origin()
+        nearby: list[str] = []
+
+        if origin is not None:
+            radius = float(self._option(CONF_RADIUS, DEFAULT_RADIUS))
+            max_stations = int(self._option(CONF_MAX_STATIONS, DEFAULT_MAX_STATIONS))
+            min_power = float(self._option(CONF_MIN_POWER, DEFAULT_MIN_POWER))
+            plug_filter = {p.lower() for p in self._option(CONF_PLUG_TYPES, []) or []}
+
+            candidates: list[tuple[float, str]] = []
+            for evse_id, point in self._master.items():
+                if evse_id in pinned:
+                    continue
+                dist = self._distance(origin, point)
+                if dist is None or dist > radius:
+                    continue
+                if min_power and (point.max_power_kw or 0) < min_power:
+                    continue
+                if plug_filter and not _matches_plug(point.plugs, plug_filter):
+                    continue
+                candidates.append((dist, evse_id))
+            candidates.sort(key=lambda item: item[0])
+            nearby = [evse_id for _, evse_id in candidates[:max_stations]]
+
+        # Preserve order: pinned first, then nearby, without duplicates.
+        ordered: list[str] = []
+        for evse_id in [*pinned, *nearby]:
+            if evse_id not in ordered:
+                ordered.append(evse_id)
+        return ordered
+
+    def _pinned_ids(self) -> list[str]:
+        """Return the configured pinned EVSE IDs."""
+        return list(self._option(CONF_PINNED_EVSE_IDS, []) or [])
+
+    def _origin(self) -> tuple[float, float] | None:
+        """Return the configured ``(latitude, longitude)`` origin, if any."""
+        lat = self._option(CONF_LATITUDE, None)
+        lon = self._option(CONF_LONGITUDE, None)
+        if lat is None or lon is None:
+            return None
+        return float(lat), float(lon)
+
+    @staticmethod
+    def _distance(
+        origin: tuple[float, float] | None, point: ChargingPoint
+    ) -> float | None:
+        """Return the distance in metres from origin to point, if computable."""
+        if origin is None or point.latitude is None or point.longitude is None:
+            return None
+        return distance(origin[0], origin[1], point.latitude, point.longitude)
+
+    @callback
+    def async_update_options(self) -> None:
+        """Reset cached selection so option changes take effect on next refresh."""
+        self.tracked_ids = []
+        self.update_interval = timedelta(seconds=self._scan_interval)
+
+
+def _matches_plug(plugs: list[str], wanted: set[str]) -> bool:
+    """Return True if any of the point's plugs contains a wanted plug token."""
+    lowered = [p.lower() for p in plugs]
+    return any(any(w in p for p in lowered) for w in wanted)
