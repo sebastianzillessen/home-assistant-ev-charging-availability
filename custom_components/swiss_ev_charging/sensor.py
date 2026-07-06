@@ -57,7 +57,7 @@ class SwissEvAvailabilitySensor(SwissEvChargingEntity, SensorEntity):
             if tracked.distance_m is not None
             else None
         )
-        return {
+        attributes = {
             "evse_id": point.evse_id,
             "operator": point.operator,
             "plug_types": point.plugs,
@@ -68,3 +68,6 @@ class SwissEvAvailabilitySensor(SwissEvChargingEntity, SensorEntity):
             "longitude": point.longitude,
             "is_pinned": tracked.is_pinned,
         }
+        if self.coordinator.tag:
+            attributes["tag"] = self.coordinator.tag
+        return attributes

@@ -20,12 +20,16 @@ from .const import (
     CONF_LONGITUDE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
+    CONF_NOTIFY_ON_AVAILABLE,
+    CONF_NOTIFY_SERVICE,
     CONF_PINNED_EVSE_IDS,
     CONF_PLUG_TYPES,
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
+    CONF_TAG,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
+    DEFAULT_NOTIFY_ON_AVAILABLE,
     DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -85,6 +89,13 @@ class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_SCAN_INTERVAL: user_input.get(
                         CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                     ),
+                    CONF_TAG: (user_input.get(CONF_TAG) or "").strip(),
+                    CONF_NOTIFY_ON_AVAILABLE: user_input.get(
+                        CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE
+                    ),
+                    CONF_NOTIFY_SERVICE: (
+                        user_input.get(CONF_NOTIFY_SERVICE) or ""
+                    ).strip(),
                 }
                 return self.async_create_entry(
                     title="Swiss EV Charging", data=data
@@ -113,6 +124,11 @@ class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL)),
+                vol.Optional(CONF_TAG, default=""): str,
+                vol.Optional(
+                    CONF_NOTIFY_ON_AVAILABLE, default=DEFAULT_NOTIFY_ON_AVAILABLE
+                ): bool,
+                vol.Optional(CONF_NOTIFY_SERVICE, default=""): str,
             }
         )
         return self.async_show_form(
@@ -147,6 +163,11 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                 CONF_SCAN_INTERVAL: user_input.get(
                     CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                 ),
+                CONF_TAG: (user_input.get(CONF_TAG) or "").strip(),
+                CONF_NOTIFY_ON_AVAILABLE: user_input.get(
+                    CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE
+                ),
+                CONF_NOTIFY_SERVICE: (user_input.get(CONF_NOTIFY_SERVICE) or "").strip(),
             }
             return self.async_create_entry(title="", data=options)
 
@@ -178,6 +199,19 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                     CONF_SCAN_INTERVAL,
                     default=current.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                 ): vol.All(vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL)),
+                vol.Optional(
+                    CONF_TAG, default=current.get(CONF_TAG, "") or ""
+                ): str,
+                vol.Optional(
+                    CONF_NOTIFY_ON_AVAILABLE,
+                    default=current.get(
+                        CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_NOTIFY_SERVICE,
+                    default=current.get(CONF_NOTIFY_SERVICE, "") or "",
+                ): str,
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
