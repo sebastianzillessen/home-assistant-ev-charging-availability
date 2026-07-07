@@ -60,6 +60,10 @@ STATE_AVAILABLE: Final = "available"
 STATE_OCCUPIED: Final = "occupied"
 STATE_RESERVED: Final = "reserved"
 STATE_OUT_OF_SERVICE: Final = "out_of_service"
+# Temporarily down for servicing. The OICP feed has no maintenance value (it
+# reports these as OutOfService); this is surfaced by the eCarUp fallback, which
+# distinguishes a maintenance connector from a hard out-of-service one.
+STATE_MAINTENANCE: Final = "maintenance"
 STATE_UNKNOWN: Final = "unknown"
 
 AVAILABILITY_STATES: Final = [
@@ -67,6 +71,7 @@ AVAILABILITY_STATES: Final = [
     STATE_OCCUPIED,
     STATE_RESERVED,
     STATE_OUT_OF_SERVICE,
+    STATE_MAINTENANCE,
     STATE_UNKNOWN,
 ]
 

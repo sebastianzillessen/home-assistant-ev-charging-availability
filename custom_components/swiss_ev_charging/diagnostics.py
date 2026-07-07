@@ -22,9 +22,10 @@ async def async_get_config_entry_diagnostics(
         # were absent from it (these surface as ``unknown``).
         "status_feed_size": coordinator.status_feed_size,
         "unmatched_ids": coordinator.unmatched_ids,
-        # eCarUp EVSEs the SFOE feed left unknown that were filled from eCarUp's
-        # own public map API.
+        # EVSEs the SFOE feed left unknown that were filled from an operator's
+        # own public API.
         "ecarup_resolved_ids": coordinator.ecarup_resolved_ids,
+        "move_resolved_ids": coordinator.move_resolved_ids,
         "tracked": {
             evse_id: {
                 "state": tracked.state,

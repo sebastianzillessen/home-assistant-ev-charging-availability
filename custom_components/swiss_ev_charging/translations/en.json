@@ -50,6 +50,7 @@
           "occupied": "Occupied",
           "reserved": "Reserved",
           "out_of_service": "Out of service",
+          "maintenance": "Maintenance",
           "unknown": "Unknown"
         }
       }

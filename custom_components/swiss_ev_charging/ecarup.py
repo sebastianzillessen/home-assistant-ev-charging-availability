@@ -33,6 +33,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 from .api import normalize_evse_id
 from .const import (
     STATE_AVAILABLE,
+    STATE_MAINTENANCE,
     STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
     STATE_RESERVED,
@@ -71,7 +72,7 @@ _CONNECTOR_STATE_MAP: dict[int, str] = {
     0: STATE_OUT_OF_SERVICE,  # Not active / Offline
     1: STATE_AVAILABLE,  # Free
     2: STATE_OCCUPIED,  # Occupied
-    3: STATE_OUT_OF_SERVICE,  # Maintenance
+    3: STATE_MAINTENANCE,  # Maintenance
     4: STATE_RESERVED,  # Reserved
     5: STATE_UNKNOWN,  # Unknown
     6: STATE_OCCUPIED,  # Car connected

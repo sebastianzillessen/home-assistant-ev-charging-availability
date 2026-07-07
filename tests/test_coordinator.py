@@ -254,3 +254,32 @@ async def test_ecarup_fallback_failure_leaves_unknown(hass) -> None:
 
     assert data["CH*ECUE123"].state == STATE_UNKNOWN
     assert coordinator.ecarup_resolved_ids == []
+
+
+@pytest.mark.asyncio
+async def test_move_fallback_fills_unknown_states(hass) -> None:
+    """A Move EVSE left unknown by SFOE is filled from the Move public API."""
+    master = {
+        "CH*CCI*E1": ChargingPoint(
+            evse_id="CH*CCI*E1", latitude=47.38, longitude=8.55
+        ),
+        "CH*ABC*E5": ChargingPoint(evse_id="CH*ABC*E5", latitude=47.38, longitude=8.55),
+    }
+    status: dict[str, str] = {}
+    entry = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*CCI*E1", "CH*ABC*E5"]})
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+
+    with patch(
+        "custom_components.swiss_ev_charging.coordinator.async_resolve_move_states",
+        return_value={"CH*CCI*E1": STATE_OCCUPIED},
+    ) as resolver:
+        data = await _run(hass, coordinator, master, status)
+
+    # Only the Move EVSE (with coordinates) was offered to the resolver.
+    targets = resolver.call_args.args[1]
+    assert [t[0] for t in targets] == ["CH*CCI*E1"]
+
+    assert data["CH*CCI*E1"].state == STATE_OCCUPIED  # filled from Move
+    assert data["CH*ABC*E5"].state == STATE_UNKNOWN  # non-Move, still unknown
+    assert coordinator.move_resolved_ids == ["CH*CCI*E1"]
+    assert "CH*CCI*E1" not in coordinator.unmatched_ids

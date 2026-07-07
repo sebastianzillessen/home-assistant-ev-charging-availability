@@ -26,17 +26,73 @@ integration downloads the live status file **once per polling interval** and
 merges it (by `EvseID`) onto locally cached master data — it does **not** poll
 per station. The large master file is cached and refreshed only occasionally.
 
-### eCarUp live-status fallback
+### Operator live-status fallbacks
 
-The SFOE feed reports `Unknown` for a large share of **eCarUp** charging points
-(`CH*ECU…`) even when eCarUp itself knows the live state. For any tracked eCarUp
-station the SFOE feed leaves `unknown`, the integration fills the gap from
-eCarUp's own **key-less public map API** (`www.ecarup.com/api`). It matches a
-station either by its roaming id (`Hubject.ID`, when eCarUp exposes it) or, as a
-fallback, by the nearest station coordinate — but only adopts a state when that
-station's connectors unanimously agree, so an ambiguous multi-connector site
-stays `unknown` rather than showing a guess. This is best-effort: any failure of
-the eCarUp API simply leaves those stations `unknown`, exactly as before.
+The SFOE feed reports `Unknown` live status for a large share of some operators'
+charging points even when the operator itself knows the state. For those
+operators that expose their own **key-less public API**, the integration fills
+the gap: for any tracked station the SFOE feed leaves `unknown`, it looks the
+state up from the operator's own backend. Two operators are covered today —
+**eCarUp** and **Move** — together the two biggest sources of missing status.
+
+All of this is **best-effort** and runs only for stations the SFOE feed could not
+resolve: any failure of an operator API simply leaves those stations `unknown`,
+exactly as before. It fires before the "became available" notification, so a
+charger going free still notifies. Diagnostics list what each fallback filled
+(`ecarup_resolved_ids`, `move_resolved_ids`).
+
+**eCarUp** (`CH*ECU…`) — via eCarUp's public map API (`www.ecarup.com/api`). Per
+station: query the map for the area (one request covering all tracked eCarUp
+stations), fetch per-connector detail, then match either by roaming id
+(`Hubject.ID`, the authoritative join) or by nearest-station coordinate — the
+coordinate match is used only when that station's connectors **unanimously
+agree**, so an ambiguous multi-connector site stays `unknown` rather than
+guessing. Connector state maps as `Free → available`,
+`Occupied`/`Car connected → occupied`, `Reserved → reserved`,
+`Maintenance → maintenance`, `Offline → out_of_service`, `Unknown → unknown`.
+
+**Move** (`CH*CCI…`, `CH*CCC…`) — via the Move app's public search endpoint
+(`app.move.ch/search`). One request covers all tracked Move stations. The join is
+**direct and authoritative**: each returned station's id *is* the OICP `EvseID`,
+so no coordinate matching is needed. Availability maps as `available → available`,
+`occupied → occupied`, `outOfService → out_of_service`, `unknown → unknown`.
+(Move's `CH*SOC`/`CH*MMN` points are not served by this backend and are not
+recovered.)
+
+### Coverage and known gaps by operator
+
+Most operators report reliable live status through the SFOE feed. A few do not —
+they report `Unknown` (or are absent from the status feed) for many or all of
+their points. The table below is a snapshot of the country-wide feed (~18,900
+charging points, ~20% of which report no live status) to gauge where extra
+integration effort would pay off. "Share" is the operator's fraction of all
+Swiss charging points; "No live status" is how many of *its* points the SFOE feed
+leaves dark.
+
+| Operator | Share of all points | No live status | Recoverable without an API key? |
+| --- | --: | --: | --- |
+| **eCarUp** | ~35% | ~32% | ✅ **Yes — implemented** (public map API) |
+| **Move** | ~13% | ~22% | ✅ **Yes — implemented** (public app search API; `CH*CCI`/`CH*CCC` only) |
+| swisscharge | ~13% | ~6% | — mostly healthy |
+| Shell Recharge | ~6% | ~3% | — mostly healthy |
+| AVIA VOLT | ~3% | ~14% | ❌ No public availability endpoint found |
+| Tesla | ~2% | **100%** | ❌ Availability API is access-controlled (HTTP 403) |
+| Power Up | ~1% | ~16% | ❌ No public endpoint found |
+| Saascharge | ~1% | ~23% | ❌ No public endpoint found |
+| PLUG N ROLL (Repower) | ~1% | **100%** | ❌ No reachable public endpoint |
+| evpass (Green Motion) | <1% | ~95% | ❌ Map is behind authentication |
+| AIL | <1% | **100%** | ❌ Not on a recoverable backend |
+
+Operators reporting essentially complete live status (≈0% dark) include GoFast,
+IONITY, Electra, Lidl, Plenitude, Chargepoint and Fastned.
+
+**eCarUp and Move together cover the bulk of the gap** — they are the two
+largest operators and the two biggest sources of missing status, and both expose
+a genuinely public, key-less backend. The remaining dark operators either never
+publish live status to the roaming/SFOE layer at all (Tesla, PLUG N ROLL, AIL) or
+keep it behind their own authentication (evpass, AVIA, Power Up, Saascharge), so
+recovering them would require per-operator reverse engineering with uncertain,
+fragile results.
 
 ## Installation
 
@@ -79,10 +135,50 @@ pinned IDs and the interval can be changed later via the integration's
 For each tracked charging point you get:
 
 - **Availability sensor** (enum): `available` / `occupied` / `reserved` /
-  `out_of_service` / `unknown`, with attributes `operator`, `plug_types`,
+  `out_of_service` / `maintenance` / `unknown`, with attributes `operator`, `plug_types`,
   `max_power_kw`, `distance_km`, `address`, `latitude`, `longitude`, `is_pinned`.
 - **"Is free" binary sensor**: on when the point is available — convenient for
   automations.
+
+## Showing the chargers on the map
+
+Because the availability sensor carries `latitude`/`longitude` attributes, each
+tracked charger already appears on Home Assistant's built-in **Map** panel and
+can be added to a dashboard map card. (If your `type: map` card shows nothing,
+set `show_all: true` or list the sensors under `entities:`.)
+
+```yaml
+type: map
+show_all: true
+label_mode: state   # marker label shows available / occupied / …
+```
+
+Home Assistant's map colours markers statically, not by state, so to get
+**availability-coloured markers** (green when free, red when in use), point the
+map at a small template sensor that mirrors the charger and exposes a
+state-dependent `entity_picture` (a coloured dot — a `data:` URI works, no files
+to host):
+
+```yaml
+template:
+  - sensor:
+      - name: Charger XY (map)
+        state: "{{ states('sensor.charger_xy_availability') }}"
+        attributes:
+          latitude: "{{ state_attr('sensor.charger_xy_availability', 'latitude') }}"
+          longitude: "{{ state_attr('sensor.charger_xy_availability', 'longitude') }}"
+          entity_picture: >
+            {% set s = states('sensor.charger_xy_availability') %}
+            {% set c = 'limegreen' if s == 'available'
+                       else 'red' if s in ['occupied', 'reserved']
+                       else 'gray' %}
+            data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24'
+            height='24'><circle cx='12' cy='12' r='11' fill='{{ c }}'/></svg>
+```
+
+Add the `… (map)` sensor to the map instead of (or alongside) the availability
+sensor. For richer per-marker styling, the community `nathan-gs/ha-map-card`
+custom card is an alternative.
 
 ## Example automation
 

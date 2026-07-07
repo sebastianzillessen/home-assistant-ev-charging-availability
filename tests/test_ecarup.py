@@ -7,8 +7,10 @@ from __future__ import annotations
 
 from custom_components.swiss_ev_charging.const import (
     STATE_AVAILABLE,
+    STATE_MAINTENANCE,
     STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
+    STATE_RESERVED,
     STATE_UNKNOWN,
 )
 from custom_components.swiss_ev_charging.ecarup import (
@@ -115,6 +117,8 @@ def test_parse_connectors_maps_state_enum_and_hubject() -> None:
             {"State": 1, "Hubject": {"ID": _EVSE, "IsEnabled": True}},
             {"State": 2, "Hubject": {"ID": None}},
             {"State": 0, "Hubject": None},  # Offline -> out_of_service
+            {"State": 3},  # Maintenance -> maintenance
+            {"State": 4},  # Reserved -> reserved
             {"State": 5},  # Unknown -> kept as unknown
             {"State": 99},  # unmapped -> dropped
         ]
@@ -124,6 +128,8 @@ def test_parse_connectors_maps_state_enum_and_hubject() -> None:
         STATE_AVAILABLE,
         STATE_OCCUPIED,
         STATE_OUT_OF_SERVICE,
+        STATE_MAINTENANCE,
+        STATE_RESERVED,
         STATE_UNKNOWN,
     ]
     assert connectors[0].hubject_id == _EVSE
