@@ -34,8 +34,13 @@ _LOGGER = logging.getLogger(__name__)
 # Public, key-less Move app backend (same call the MOVE mobile app makes).
 MOVE_SEARCH_URL = "https://app.move.ch/search"
 
-# Move EVSEs carry the operator ids ``CH*CCI`` / ``CH*CCC`` in the SFOE feed.
-_MOVE_KEY_PREFIXES = ("CHCCI", "CHCCC")
+# Operator ids (SFOE ``EvseID`` prefixes) whose live status the Move ``/search``
+# endpoint carries. Move's own points are ``CH*CCI`` / ``CH*CCC``; the endpoint
+# also returns roaming networks near the queried point, and a few operators the
+# SFOE feed leaves ``Unknown`` have accurate live status there, joined by the
+# exact EvseID: Repower / PLUG N ROLL (``CH*REP``), AVIA VOLT (``CH*AVI``) and
+# Power Up (``CH*POW``).
+_MOVE_KEY_PREFIXES = ("CHCCI", "CHCCC", "CHREP", "CHAVI", "CHPOW")
 
 # Query radius (km) is grown to cover all tracked targets, plus this margin.
 _RADIUS_MARGIN_KM = 0.5
@@ -56,8 +61,12 @@ _AVAILABILITY_MAP: dict[str, str] = {
 }
 
 
-def is_move_evse_id(evse_id: str) -> bool:
-    """Return True if ``evse_id`` belongs to Move (``CH*CCI`` / ``CH*CCC``)."""
+def is_move_search_evse_id(evse_id: str) -> bool:
+    """Return True if ``evse_id``'s live status is resolvable via Move ``/search``.
+
+    Covers Move's own points plus the roaming networks (Repower/PLUG N ROLL,
+    AVIA VOLT, Power Up) the endpoint reports with accurate live status.
+    """
     key = normalize_evse_id(evse_id)
     return key.startswith(_MOVE_KEY_PREFIXES)
 
