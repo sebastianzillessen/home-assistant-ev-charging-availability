@@ -23,6 +23,7 @@ from .api import (
 from .ecarup import async_resolve_ecarup_states, is_ecarup_evse_id
 from .move import async_resolve_move_states, is_move_evse_id
 from .const import (
+    CONF_COLOR_MAP_MARKERS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_MAX_STATIONS,
@@ -34,6 +35,7 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_TAG,
+    DEFAULT_COLOR_MAP_MARKERS,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
@@ -106,6 +108,11 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         if isinstance(value, str) and value.strip():
             return value.strip()
         return None
+
+    @property
+    def color_map_markers(self) -> bool:
+        """Whether to colour map markers by availability (via entity_picture)."""
+        return bool(self._option(CONF_COLOR_MAP_MARKERS, DEFAULT_COLOR_MAP_MARKERS))
 
     async def _async_update_data(self) -> dict[str, TrackedEvse]:
         """Refresh master data if stale, then poll live status and merge."""

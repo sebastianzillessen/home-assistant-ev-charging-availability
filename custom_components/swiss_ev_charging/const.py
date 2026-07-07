@@ -41,6 +41,7 @@ CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_TAG: Final = "tag"
 CONF_NOTIFY_ON_AVAILABLE: Final = "notify_on_available"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
+CONF_COLOR_MAP_MARKERS: Final = "color_map_markers"
 
 # Defaults.
 DEFAULT_RADIUS: Final = 1000  # metres
@@ -50,6 +51,7 @@ DEFAULT_SCAN_INTERVAL: Final = 180  # seconds (3 minutes)
 MIN_SCAN_INTERVAL: Final = 60  # seconds, be respectful of the public endpoint
 
 DEFAULT_NOTIFY_ON_AVAILABLE: Final = False
+DEFAULT_COLOR_MAP_MARKERS: Final = False
 
 # Master (static) data is large and rarely changes; refresh it infrequently.
 MASTER_REFRESH_INTERVAL: Final = timedelta(hours=24)

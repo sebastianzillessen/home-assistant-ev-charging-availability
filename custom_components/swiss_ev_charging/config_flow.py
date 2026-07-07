@@ -17,6 +17,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (
+    CONF_COLOR_MAP_MARKERS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_MAX_STATIONS,
@@ -28,6 +29,7 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_TAG,
+    DEFAULT_COLOR_MAP_MARKERS,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
@@ -178,6 +180,9 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                     CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE
                 ),
                 CONF_NOTIFY_SERVICE: (user_input.get(CONF_NOTIFY_SERVICE) or "").strip(),
+                CONF_COLOR_MAP_MARKERS: user_input.get(
+                    CONF_COLOR_MAP_MARKERS, DEFAULT_COLOR_MAP_MARKERS
+                ),
             }
             return self.async_create_entry(title="", data=options)
 
@@ -224,6 +229,12 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                         "suggested_value": current.get(CONF_NOTIFY_SERVICE) or None
                     },
                 ): _notify_target_selector(),
+                vol.Optional(
+                    CONF_COLOR_MAP_MARKERS,
+                    default=current.get(
+                        CONF_COLOR_MAP_MARKERS, DEFAULT_COLOR_MAP_MARKERS
+                    ),
+                ): bool,
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

@@ -36,7 +36,8 @@
           "scan_interval": "Polling interval (seconds)",
           "tag": "Tag (applied to all stations of this entry)",
           "notify_on_available": "Notify when a station becomes available",
-          "notify_service": "Notify target (any notify entity; blank = persistent notification)"
+          "notify_service": "Notify target (any notify entity; blank = persistent notification)",
+          "color_map_markers": "Colour map markers by availability (replaces the icon everywhere)"
         }
       }
     }
