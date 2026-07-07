@@ -153,11 +153,22 @@ show_all: true
 label_mode: state   # marker label shows available / occupied / …
 ```
 
-Home Assistant's map colours markers statically, not by state, so to get
-**availability-coloured markers** (green when free, red when in use), point the
-map at a small template sensor that mirrors the charger and exposes a
-state-dependent `entity_picture` (a coloured dot — a `data:` URI works, no files
-to host):
+Home Assistant colours map markers statically, not by state. To get
+**availability-coloured markers** (green when free, red when in use), enable the
+**"Colour map markers by availability"** option (integration → *Configure*). Each
+availability sensor then exposes a state-coloured dot as its `entity_picture`, so
+markers follow availability automatically — no template sensors needed.
+
+Note the trade-off: because a marker's image is the entity's `entity_picture`,
+which Home Assistant also uses everywhere else, turning this on replaces the
+sensor's `mdi:ev-station` **icon with the coloured dot in entity lists, cards and
+the more-info dialog too** — not only on the map. It is therefore off by default.
+Marker colours: green = available, red = occupied, orange = reserved,
+purple = maintenance, grey = out of service, light grey = unknown.
+
+If you would rather keep the icon and colour only the map, drive the map from a
+small template sensor that mirrors the charger and sets the `entity_picture`
+itself, and add that sensor to the map instead:
 
 ```yaml
 template:
@@ -176,9 +187,8 @@ template:
             height='24'><circle cx='12' cy='12' r='11' fill='{{ c }}'/></svg>
 ```
 
-Add the `… (map)` sensor to the map instead of (or alongside) the availability
-sensor. For richer per-marker styling, the community `nathan-gs/ha-map-card`
-custom card is an alternative.
+For richer per-marker styling, the community `nathan-gs/ha-map-card` custom card
+is another alternative.
 
 ## Example automation
 

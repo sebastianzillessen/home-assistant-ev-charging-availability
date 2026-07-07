@@ -121,6 +121,19 @@ async def test_tag_is_trimmed(hass) -> None:
 
 
 @pytest.mark.asyncio
+async def test_color_map_markers_option(hass) -> None:
+    """The colour-map-markers flag defaults off and reflects the option."""
+    off = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"]})
+    assert SwissEvChargingCoordinator(hass, off).color_map_markers is False
+
+    on = _make_entry(
+        hass,
+        {CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"], "color_map_markers": True},
+    )
+    assert SwissEvChargingCoordinator(hass, on).color_map_markers is True
+
+
+@pytest.mark.asyncio
 async def test_notify_on_available_transition(hass) -> None:
     """A station transitioning to available triggers exactly one notification."""
     master = parse_evse_data(load_fixture("evse_data.json"))

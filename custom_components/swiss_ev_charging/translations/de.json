@@ -36,7 +36,8 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
           "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
-          "notify_service": "Notify-Ziel (beliebige Notify-Entität; leer = persistente Benachrichtigung)"
+          "notify_service": "Notify-Ziel (beliebige Notify-Entität; leer = persistente Benachrichtigung)",
+          "color_map_markers": "Kartenmarker nach Verfügbarkeit einfärben (ersetzt überall das Symbol)"
         }
       }
     }
