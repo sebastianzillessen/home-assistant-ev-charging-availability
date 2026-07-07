@@ -12,6 +12,7 @@ import asyncio
 import gzip
 import json
 import os
+import socket
 import urllib.request
 
 import aiohttp
@@ -29,6 +30,7 @@ from custom_components.swiss_ev_charging.const import (
     STATE_UNKNOWN,
 )
 from custom_components.swiss_ev_charging.ecarup import async_resolve_ecarup_states
+from custom_components.swiss_ev_charging.move import async_resolve_move_states
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_LIVE_TESTS") != "1",
@@ -40,11 +42,20 @@ pytestmark = pytest.mark.skipif(
 def _allow_live_sockets():
     """Re-enable real network sockets for these opt-in live tests.
 
-    ``pytest-homeassistant-custom-component`` blocks sockets before every test;
-    these tests intentionally hit public endpoints, so allow them again.
+    ``pytest-homeassistant-custom-component`` blocks sockets before every test:
+    it both disables ``socket.socket`` and restricts ``connect()`` to
+    ``127.0.0.1``. These tests intentionally hit public endpoints, so lift both
+    restrictions (``enable_socket()`` alone does not clear the host allowlist).
     """
-    pytest_socket.enable_socket()
+    _lift_socket_restrictions()
     yield
+
+
+def _lift_socket_restrictions() -> None:
+    """Fully restore real sockets, including the connect() host allowlist."""
+    pytest_socket.enable_socket()
+    # enable_socket() restores socket.socket but not the connect() host guard.
+    socket.socket.connect = pytest_socket._true_connect
 
 
 def _download(url: str) -> dict:
@@ -53,7 +64,7 @@ def _download(url: str) -> dict:
     The CDN serves these files gzip-compressed; urllib does not auto-decompress
     (the integration itself uses aiohttp, which does), so handle it here.
     """
-    pytest_socket.enable_socket()
+    _lift_socket_restrictions()
     request = urllib.request.Request(url, headers={"User-Agent": "ha-swiss-ev-tests"})
     with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
         raw = response.read()
@@ -123,6 +134,31 @@ def test_live_ecarup_fallback_resolves_states() -> None:
     resolved = asyncio.run(_run())
 
     # Every resolved value is a concrete, valid availability state.
+    for evse_id, state in resolved.items():
+        assert evse_id in {t[0] for t in targets}
+        assert state in AVAILABILITY_STATES
+        assert state != STATE_UNKNOWN
+
+
+def test_live_move_fallback_resolves_states() -> None:
+    """The Move public API resolves live states the SFOE feed leaves unknown.
+
+    Uses real Move EVSEs the SFOE feed reports as ``Unknown``. Their live state
+    varies, so we only assert the resolver runs cleanly against the real endpoint
+    and returns concrete, valid states joined by the exact EvseID.
+    """
+    targets = [
+        ("CH*CCI*E22078", 46.23432, 6.055602),  # SIG CERN, Meyrin
+        ("CH*CCI*E22076", 46.23432, 6.055602),
+        ("CH*CCC*E50084", 46.446593, 6.297621),  # MOVE La Côte Jura
+    ]
+
+    async def _run() -> dict[str, str]:
+        async with aiohttp.ClientSession() as session:
+            return await async_resolve_move_states(session, targets)
+
+    resolved = asyncio.run(_run())
+
     for evse_id, state in resolved.items():
         assert evse_id in {t[0] for t in targets}
         assert state in AVAILABILITY_STATES

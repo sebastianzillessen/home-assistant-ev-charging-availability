@@ -21,6 +21,7 @@ from .api import (
     normalize_evse_id,
 )
 from .ecarup import async_resolve_ecarup_states, is_ecarup_evse_id
+from .move import async_resolve_move_states, is_move_evse_id
 from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -74,9 +75,10 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         # had no live status in it (surfaced as ``unknown``).
         self.status_feed_size: int = 0
         self.unmatched_ids: list[str] = []
-        # Diagnostics: eCarUp EVSEs the SFOE feed left unknown that we filled from
-        # eCarUp's own public map API.
+        # Diagnostics: EVSEs the SFOE feed left unknown that we filled from an
+        # operator's own public API (eCarUp / Move).
         self.ecarup_resolved_ids: list[str] = []
+        self.move_resolved_ids: list[str] = []
 
         super().__init__(
             hass,
@@ -154,58 +156,83 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
                 ", ".join(unmatched),
             )
 
-        # The SFOE feed reports Unknown for many eCarUp EVSEs; fill those from
-        # eCarUp's own key-less public map API before notifying, so an eCarUp
+        # The SFOE feed reports Unknown for many eCarUp / Move EVSEs; fill those
+        # from the operators' own key-less public APIs before notifying, so a
         # station becoming available still fires a notification.
-        await self._async_apply_ecarup_fallback(result)
+        await self._async_apply_operator_fallbacks(result)
 
         # self.data still holds the previous refresh here; compare to notify on
         # stations that just became available.
         self._notify_newly_available(self.data, result)
         return result
 
-    async def _async_apply_ecarup_fallback(
+    async def _async_apply_operator_fallbacks(
         self, result: dict[str, TrackedEvse]
     ) -> None:
-        """Fill ``unknown`` eCarUp EVSEs from eCarUp's public map API.
+        """Fill ``unknown`` stations from operators' own public APIs.
 
-        Best-effort: overrides only states we can resolve confidently and never
-        raises, so a third-party outage leaves those stations ``unknown``.
+        Each operator whose live status the SFOE feed omits has a best-effort
+        resolver; run them in turn and record which EVSEs each one filled.
+        """
+        self.ecarup_resolved_ids = await self._async_apply_operator_fallback(
+            result,
+            is_target=is_ecarup_evse_id,
+            resolver=async_resolve_ecarup_states,
+            label="eCarUp",
+        )
+        self.move_resolved_ids = await self._async_apply_operator_fallback(
+            result,
+            is_target=is_move_evse_id,
+            resolver=async_resolve_move_states,
+            label="Move",
+        )
+
+    async def _async_apply_operator_fallback(
+        self,
+        result: dict[str, TrackedEvse],
+        *,
+        is_target,
+        resolver,
+        label: str,
+    ) -> list[str]:
+        """Resolve ``unknown`` EVSEs matching ``is_target`` via ``resolver``.
+
+        Best-effort: overrides only states the resolver returns and never raises,
+        so a third-party outage leaves those stations ``unknown``. Returns the
+        list of EVSE ids that were filled.
         """
         targets = [
             (evse_id, tracked.point.latitude, tracked.point.longitude)
             for evse_id, tracked in result.items()
             if tracked.state == STATE_UNKNOWN
-            and is_ecarup_evse_id(evse_id)
+            and is_target(evse_id)
             and tracked.point.latitude is not None
             and tracked.point.longitude is not None
         ]
         if not targets:
-            self.ecarup_resolved_ids = []
-            return
+            return []
 
         try:
-            resolved = await async_resolve_ecarup_states(
-                async_get_clientsession(self.hass), targets
-            )
+            resolved = await resolver(async_get_clientsession(self.hass), targets)
         except Exception as err:  # noqa: BLE001 - fallback must never break polling
-            _LOGGER.debug("eCarUp status fallback failed: %s", err)
-            self.ecarup_resolved_ids = []
-            return
+            _LOGGER.debug("%s status fallback failed: %s", label, err)
+            return []
 
         for evse_id, state in resolved.items():
             tracked = result.get(evse_id)
             if tracked is not None:
                 tracked.state = state
 
-        self.ecarup_resolved_ids = list(resolved)
         if resolved:
             self.unmatched_ids = [e for e in self.unmatched_ids if e not in resolved]
             _LOGGER.debug(
-                "Filled %d eCarUp station(s) from the eCarUp public API: %s",
+                "Filled %d %s station(s) from the %s public API: %s",
                 len(resolved),
+                label,
+                label,
                 ", ".join(resolved),
             )
+        return list(resolved)
 
     async def _async_ensure_master_data(self) -> None:
         """Download the static master file on first use or when it is stale."""
