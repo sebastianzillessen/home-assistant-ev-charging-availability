@@ -10,17 +10,26 @@ from custom_components.swiss_ev_charging.const import (
     STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
 )
-from custom_components.swiss_ev_charging.move import is_move_evse_id, parse_search
+from custom_components.swiss_ev_charging.move import (
+    is_move_search_evse_id,
+    parse_search,
+)
 
 
-def test_is_move_evse_id() -> None:
-    """Only Move operator prefixes (CCI / CCC, any separator/case) are matched."""
-    assert is_move_evse_id("CH*CCI*E22078")
-    assert is_move_evse_id("CH*CCC*E50084")
-    assert is_move_evse_id("ch-cci-e1")
-    assert not is_move_evse_id("CH*ECUE123")  # eCarUp
-    assert not is_move_evse_id("CH*EWZ*E130046")
-    assert not is_move_evse_id("CH*SOC*E1")  # a Move prefix absent from this backend
+def test_is_move_search_evse_id() -> None:
+    """Move's own and roaming-visible operator prefixes are matched (any case/sep)."""
+    # Move's own operator ids.
+    assert is_move_search_evse_id("CH*CCI*E22078")
+    assert is_move_search_evse_id("CH*CCC*E50084")
+    assert is_move_search_evse_id("ch-cci-e1")
+    # Roaming networks the Move /search endpoint reports with live status.
+    assert is_move_search_evse_id("CH*REPE020*01*1")  # Repower / PLUG N ROLL
+    assert is_move_search_evse_id("CH*AVI*E10141")  # AVIA VOLT
+    assert is_move_search_evse_id("CH*POW*E92255")  # Power Up
+    # Not resolvable here.
+    assert not is_move_search_evse_id("CH*ECUE123")  # eCarUp
+    assert not is_move_search_evse_id("CH*EWZ*E130046")
+    assert not is_move_search_evse_id("CH*SOC*E1")  # Move prefix absent from backend
 
 
 def test_parse_search_maps_availability_by_evse_id() -> None:

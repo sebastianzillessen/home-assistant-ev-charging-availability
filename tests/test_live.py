@@ -143,23 +143,25 @@ def test_live_ecarup_fallback_resolves_states() -> None:
 def test_live_move_fallback_resolves_states() -> None:
     """The Move public API resolves live states the SFOE feed leaves unknown.
 
-    Uses real Move EVSEs the SFOE feed reports as ``Unknown``. Their live state
-    varies, so we only assert the resolver runs cleanly against the real endpoint
-    and returns concrete, valid states joined by the exact EvseID.
+    Covers Move's own points and the roaming networks the same endpoint reports
+    (AVIA VOLT, Power Up, Repower / PLUG N ROLL). Each is queried on its own
+    (they are far apart), and since live state varies we only assert the resolver
+    runs cleanly and returns concrete, valid states joined by the exact EvseID.
     """
     targets = [
-        ("CH*CCI*E22078", 46.23432, 6.055602),  # SIG CERN, Meyrin
-        ("CH*CCI*E22076", 46.23432, 6.055602),
-        ("CH*CCC*E50084", 46.446593, 6.297621),  # MOVE La Côte Jura
+        ("CH*CCI*E22078", 46.23432, 6.055602),  # Move, SIG CERN Meyrin
+        ("CH*AVI*E10141", 47.408282, 9.303683),  # AVIA VOLT Shopping Arena
+        ("CH*POW*E92255", 46.561268, 7.375258),  # Power Up LANDI Zweisimmen
+        ("CH*REPE020*01*1", 46.45931, 9.795548),  # Repower / PLUG N ROLL
     ]
 
-    async def _run() -> dict[str, str]:
+    async def _resolve_one(target) -> dict[str, str]:
         async with aiohttp.ClientSession() as session:
-            return await async_resolve_move_states(session, targets)
+            return await async_resolve_move_states(session, [target])
 
-    resolved = asyncio.run(_run())
-
-    for evse_id, state in resolved.items():
-        assert evse_id in {t[0] for t in targets}
-        assert state in AVAILABILITY_STATES
-        assert state != STATE_UNKNOWN
+    for target in targets:
+        resolved = asyncio.run(_resolve_one(target))
+        for evse_id, state in resolved.items():
+            assert evse_id == target[0]
+            assert state in AVAILABILITY_STATES
+            assert state != STATE_UNKNOWN
