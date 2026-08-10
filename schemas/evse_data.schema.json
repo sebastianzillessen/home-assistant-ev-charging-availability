@@ -10,6 +10,12 @@
                 "Accessibility": {
                   "type": "string"
                 },
+                "AccessibilityLocation": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
                 "AdditionalInfo": {
                   "type": "null"
                 },
@@ -22,82 +28,197 @@
                       "type": "string"
                     },
                     "Floor": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "HouseNum": {
+                      "type": "string"
+                    },
+                    "ParkingFacility": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "ParkingSpot": {
                       "type": "null"
                     },
                     "PostalCode": {
                       "type": "string"
                     },
                     "Region": {
-                      "type": "null"
+                      "type": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "Street": {
                       "type": "string"
+                    },
+                    "TimeZone": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
                     }
                   },
                   "required": [
                     "City",
                     "Country",
-                    "PostalCode",
+                    "Floor",
+                    "ParkingFacility",
+                    "ParkingSpot",
+                    "Region",
                     "Street"
                   ],
                   "type": "object"
+                },
+                "AuthenticationModes": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "CalibrationLawDataAvailability": {
+                  "type": "string"
                 },
                 "ChargingFacilities": {
                   "items": {
                     "properties": {
                       "Amperage": {
-                        "type": "string"
+                        "type": [
+                          "number",
+                          "string"
+                        ]
+                      },
+                      "ChargingModes": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
                       },
                       "Voltage": {
-                        "type": "string"
+                        "type": [
+                          "number",
+                          "string"
+                        ]
                       },
                       "power": {
-                        "type": "string"
+                        "type": [
+                          "number",
+                          "string"
+                        ]
                       },
                       "powertype": {
-                        "type": "string"
+                        "type": [
+                          "null",
+                          "string"
+                        ]
                       }
                     },
                     "required": [
-                      "Amperage",
-                      "Voltage",
-                      "power",
                       "powertype"
                     ],
                     "type": "object"
                   },
                   "type": "array"
                 },
+                "ChargingPoolID": {
+                  "type": "null"
+                },
+                "ChargingPoolId": {
+                  "type": "string"
+                },
+                "ChargingStationId": {
+                  "type": "string"
+                },
+                "ChargingStationLocationReference": {
+                  "type": "null"
+                },
                 "ChargingStationNames": {
-                  "items": {
-                    "properties": {
-                      "lang": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "string"
-                      }
+                  "anyOf": [
+                    {
+                      "type": "null"
                     },
-                    "required": [
-                      "lang",
-                      "value"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
+                    {
+                      "items": {
+                        "properties": {
+                          "lang": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "lang",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "properties": {
+                        "lang": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "lang",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "ClearinghouseID": {
+                  "type": "null"
+                },
+                "DynamicInfoAvailable": {
+                  "type": "string"
+                },
+                "DynamicPowerLevel": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "EnergySource": {
+                  "type": "null"
+                },
+                "EnvironmentalImpact": {
+                  "type": "null"
                 },
                 "EvseID": {
                   "type": "string"
                 },
                 "GeoChargingPointEntrance": {
                   "properties": {
+                    "DecimalDegree": {
+                      "properties": {
+                        "Latitude": {
+                          "type": "string"
+                        },
+                        "Longitude": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "Latitude",
+                        "Longitude"
+                      ],
+                      "type": "object"
+                    },
                     "Google": {
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "Google"
-                  ],
                   "type": "object"
                 },
                 "GeoCoordinates": {
@@ -111,31 +232,173 @@
                   ],
                   "type": "object"
                 },
+                "HardwareManufacturer": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "HotlinePhoneNumber": {
+                  "type": "string"
+                },
+                "HubOperatorID": {
+                  "type": "null"
+                },
+                "IsHubjectCompatible": {
+                  "type": "boolean"
+                },
                 "IsOpen24Hours": {
                   "type": "boolean"
+                },
+                "LocationImage": {
+                  "type": "null"
+                },
+                "MaxCapacity": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "OpeningTimes": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "items": {
+                        "properties": {
+                          "Period": {
+                            "anyOf": [
+                              {
+                                "items": {
+                                  "properties": {
+                                    "begin": {
+                                      "type": "string"
+                                    },
+                                    "end": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "begin",
+                                    "end"
+                                  ],
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              },
+                              {
+                                "properties": {
+                                  "begin": {
+                                    "type": "string"
+                                  },
+                                  "end": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "begin",
+                                  "end"
+                                ],
+                                "type": "object"
+                              }
+                            ]
+                          },
+                          "on": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "Period",
+                          "on"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "PaymentOptions": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "Plugs": {
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
+                },
+                "RenewableEnergy": {
+                  "type": "boolean"
+                },
+                "SubOperatorName": {
+                  "type": "string"
+                },
+                "SuboperatorName": {
+                  "type": "null"
+                },
+                "ValueAddedServices": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "deltaType": {
+                  "type": "string"
+                },
+                "lastUpdate": {
+                  "type": "string"
                 }
               },
               "required": [
+                "Accessibility",
+                "AccessibilityLocation",
+                "AdditionalInfo",
                 "Address",
+                "AuthenticationModes",
+                "CalibrationLawDataAvailability",
                 "ChargingFacilities",
+                "ChargingPoolID",
+                "ChargingStationId",
+                "ChargingStationLocationReference",
                 "ChargingStationNames",
+                "ClearinghouseID",
+                "DynamicInfoAvailable",
+                "DynamicPowerLevel",
+                "EnergySource",
+                "EnvironmentalImpact",
                 "EvseID",
+                "GeoChargingPointEntrance",
                 "GeoCoordinates",
-                "Plugs"
+                "HardwareManufacturer",
+                "HotlinePhoneNumber",
+                "HubOperatorID",
+                "IsHubjectCompatible",
+                "IsOpen24Hours",
+                "LocationImage",
+                "MaxCapacity",
+                "OpeningTimes",
+                "Plugs",
+                "RenewableEnergy",
+                "SuboperatorName"
               ],
               "type": "object"
             },
             "type": "array"
+          },
+          "OperatorID": {
+            "type": "string"
+          },
+          "OperatorName": {
+            "type": "string"
           }
         },
         "required": [
-          "EVSEDataRecord"
+          "EVSEDataRecord",
+          "OperatorID",
+          "OperatorName"
         ],
         "type": "object"
       },

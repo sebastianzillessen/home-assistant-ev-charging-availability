@@ -21,10 +21,18 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "OperatorID": {
+            "type": "string"
+          },
+          "OperatorName": {
+            "type": "string"
           }
         },
         "required": [
-          "EVSEStatusRecord"
+          "EVSEStatusRecord",
+          "OperatorID",
+          "OperatorName"
         ],
         "type": "object"
       },
