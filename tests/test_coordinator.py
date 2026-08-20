@@ -22,6 +22,7 @@ from custom_components.swiss_ev_charging.api import (
 from custom_components.swiss_ev_charging.const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_MAP_MARKER_STYLE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
     CONF_NOTIFY_ON_AVAILABLE,
@@ -29,6 +30,9 @@ from custom_components.swiss_ev_charging.const import (
     CONF_RADIUS,
     CONF_TAG,
     DOMAIN,
+    MARKER_STYLE_GLYPH,
+    MARKER_STYLE_OFF,
+    MARKER_STYLE_PIP,
     STATE_AVAILABLE,
     STATE_OCCUPIED,
     STATE_OUT_OF_SERVICE,
@@ -121,16 +125,28 @@ async def test_tag_is_trimmed(hass) -> None:
 
 
 @pytest.mark.asyncio
-async def test_color_map_markers_option(hass) -> None:
-    """The colour-map-markers flag defaults off and reflects the option."""
-    off = _make_entry(hass, {CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"]})
-    assert SwissEvChargingCoordinator(hass, off).color_map_markers is False
+async def test_map_marker_style_option(hass) -> None:
+    """The marker-style option defaults off, honours a choice, and migrates."""
+    pin = ["CH*ABC*E1001"]
 
-    on = _make_entry(
-        hass,
-        {CONF_PINNED_EVSE_IDS: ["CH*ABC*E1001"], "color_map_markers": True},
+    # Unset -> off (default).
+    default = _make_entry(hass, {CONF_PINNED_EVSE_IDS: pin})
+    assert (
+        SwissEvChargingCoordinator(hass, default).map_marker_style
+        == MARKER_STYLE_OFF
     )
-    assert SwissEvChargingCoordinator(hass, on).color_map_markers is True
+
+    # An explicit style is used verbatim.
+    chosen = _make_entry(
+        hass, {CONF_PINNED_EVSE_IDS: pin, CONF_MAP_MARKER_STYLE: MARKER_STYLE_GLYPH}
+    )
+    assert SwissEvChargingCoordinator(hass, chosen).map_marker_style == MARKER_STYLE_GLYPH
+
+    # Legacy boolean (color_map_markers=True) migrates to the plug + pip style.
+    legacy = _make_entry(
+        hass, {CONF_PINNED_EVSE_IDS: pin, "color_map_markers": True}
+    )
+    assert SwissEvChargingCoordinator(hass, legacy).map_marker_style == MARKER_STYLE_PIP
 
 
 @pytest.mark.asyncio

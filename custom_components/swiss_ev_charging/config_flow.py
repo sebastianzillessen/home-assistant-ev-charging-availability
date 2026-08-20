@@ -14,12 +14,19 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     CONF_COLOR_MAP_MARKERS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_MAP_MARKER_STYLE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
     CONF_NOTIFY_ON_AVAILABLE,
@@ -29,13 +36,15 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_TAG,
-    DEFAULT_COLOR_MAP_MARKERS,
+    DEFAULT_MAP_MARKER_STYLE,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
     DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MARKER_STYLE_PIP,
+    MARKER_STYLES,
     MIN_SCAN_INTERVAL,
 )
 
@@ -63,6 +72,27 @@ def _notify_target_selector() -> EntitySelector:
     field empty falls back to a persistent notification.
     """
     return EntitySelector(EntitySelectorConfig(domain="notify"))
+
+
+def _marker_style_selector() -> SelectSelector:
+    """Dropdown of map-marker styles (labels come from ``selector`` strings)."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=list(MARKER_STYLES),
+            translation_key="map_marker_style",
+            mode=SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _marker_style_default(current: dict[str, Any]) -> str:
+    """Current marker style, falling back to the legacy boolean if unset."""
+    style = current.get(CONF_MAP_MARKER_STYLE)
+    if style in MARKER_STYLES:
+        return style
+    if current.get(CONF_COLOR_MAP_MARKERS):
+        return MARKER_STYLE_PIP
+    return DEFAULT_MAP_MARKER_STYLE
 
 
 class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -180,8 +210,8 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                     CONF_NOTIFY_ON_AVAILABLE, DEFAULT_NOTIFY_ON_AVAILABLE
                 ),
                 CONF_NOTIFY_SERVICE: (user_input.get(CONF_NOTIFY_SERVICE) or "").strip(),
-                CONF_COLOR_MAP_MARKERS: user_input.get(
-                    CONF_COLOR_MAP_MARKERS, DEFAULT_COLOR_MAP_MARKERS
+                CONF_MAP_MARKER_STYLE: user_input.get(
+                    CONF_MAP_MARKER_STYLE, DEFAULT_MAP_MARKER_STYLE
                 ),
             }
             return self.async_create_entry(title="", data=options)
@@ -230,11 +260,9 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                     },
                 ): _notify_target_selector(),
                 vol.Optional(
-                    CONF_COLOR_MAP_MARKERS,
-                    default=current.get(
-                        CONF_COLOR_MAP_MARKERS, DEFAULT_COLOR_MAP_MARKERS
-                    ),
-                ): bool,
+                    CONF_MAP_MARKER_STYLE,
+                    default=_marker_style_default(current),
+                ): _marker_style_selector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

@@ -128,6 +128,7 @@ Swiss EV Charging**. You can track stations two ways (combine both):
 | Tag | Free-text label applied to every station of this entry (exposed as a `tag` attribute) |
 | Notify when available | Toggle: send a notification when a tracked station becomes available |
 | Notify service | Which `notify.*` service to call (blank = a Home Assistant persistent notification) |
+| Map marker style | Colour map markers by availability — off / coloured dot / glyph per state / plug + status pip (see [Showing the chargers on the map](#showing-the-chargers-on-the-map)) |
 
 At least a location **or** one pinned EVSE ID is required. Radius, filters,
 pinned IDs and the interval can be changed later via the integration's
@@ -157,17 +158,27 @@ label_mode: state   # marker label shows available / occupied / …
 ```
 
 Home Assistant colours map markers statically, not by state. To get
-**availability-coloured markers** (green when free, red when in use), enable the
-**"Colour map markers by availability"** option (integration → *Configure*). Each
-availability sensor then exposes a state-coloured dot as its `entity_picture`, so
-markers follow availability automatically — no template sensors needed.
+**availability-coloured markers** (green when free, red when in use), set the
+**"Map marker style"** option (integration → *Configure*). Each availability
+sensor then exposes a state-coloured badge as its `entity_picture`, so markers
+follow availability automatically — no template sensors needed. Styles:
+
+| Style | Marker |
+| --- | --- |
+| **Off** (default) | keeps the normal `mdi:ev-station` icon |
+| **Coloured dot** | a plain disc, coloured by state |
+| **Glyph per state** | one white glyph per state — plug (free), bolt (in use), hourglass (reserved), wrench (maintenance), power (out of service), ? (unknown) |
+| **Plug + status pip** | a plug on every marker with a small corner pip carrying the state glyph |
+
+The glyph and pip styles encode the state as a **shape**, not just a colour, so
+they stay legible in greyscale and for red-green colour vision deficiency.
+Colours: green = available, red = occupied, orange = reserved,
+purple = maintenance, grey = out of service, light grey = unknown.
 
 Note the trade-off: because a marker's image is the entity's `entity_picture`,
-which Home Assistant also uses everywhere else, turning this on replaces the
-sensor's `mdi:ev-station` **icon with the coloured dot in entity lists, cards and
-the more-info dialog too** — not only on the map. It is therefore off by default.
-Marker colours: green = available, red = occupied, orange = reserved,
-purple = maintenance, grey = out of service, light grey = unknown.
+which Home Assistant also uses everywhere else, any style other than *Off*
+replaces the sensor's icon in entity lists, cards and the more-info dialog too —
+not only on the map. It is therefore *Off* by default.
 
 If you would rather keep the icon and colour only the map, drive the map from a
 small template sensor that mirrors the charger and sets the `entity_picture`

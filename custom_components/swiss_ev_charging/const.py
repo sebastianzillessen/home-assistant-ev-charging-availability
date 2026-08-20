@@ -41,7 +41,22 @@ CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_TAG: Final = "tag"
 CONF_NOTIFY_ON_AVAILABLE: Final = "notify_on_available"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
+CONF_MAP_MARKER_STYLE: Final = "map_marker_style"
+# Legacy boolean (0.5.x/0.6.x); superseded by CONF_MAP_MARKER_STYLE but still
+# read for backward compatibility with existing config entries.
 CONF_COLOR_MAP_MARKERS: Final = "color_map_markers"
+
+# Map-marker styles for the availability sensor's ``entity_picture``.
+MARKER_STYLE_OFF: Final = "off"  # keep the default icon
+MARKER_STYLE_DOT: Final = "dot"  # plain colour-coded dot
+MARKER_STYLE_GLYPH: Final = "glyph"  # one glyph per state
+MARKER_STYLE_PIP: Final = "pip"  # plug + per-state status pip
+MARKER_STYLES: Final = (
+    MARKER_STYLE_OFF,
+    MARKER_STYLE_DOT,
+    MARKER_STYLE_GLYPH,
+    MARKER_STYLE_PIP,
+)
 
 # Defaults.
 DEFAULT_RADIUS: Final = 1000  # metres
@@ -51,6 +66,7 @@ DEFAULT_SCAN_INTERVAL: Final = 180  # seconds (3 minutes)
 MIN_SCAN_INTERVAL: Final = 60  # seconds, be respectful of the public endpoint
 
 DEFAULT_NOTIFY_ON_AVAILABLE: Final = False
+DEFAULT_MAP_MARKER_STYLE: Final = MARKER_STYLE_OFF
 DEFAULT_COLOR_MAP_MARKERS: Final = False
 
 # Master (static) data is large and rarely changes; refresh it infrequently.
