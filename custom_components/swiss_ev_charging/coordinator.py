@@ -26,6 +26,7 @@ from .const import (
     CONF_COLOR_MAP_MARKERS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_MAP_MARKER_STYLE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
     CONF_NOTIFY_ON_AVAILABLE,
@@ -35,13 +36,15 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_TAG,
-    DEFAULT_COLOR_MAP_MARKERS,
+    DEFAULT_MAP_MARKER_STYLE,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
     DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MARKER_STYLE_PIP,
+    MARKER_STYLES,
     MASTER_REFRESH_INTERVAL,
     MIN_SCAN_INTERVAL,
     STATE_AVAILABLE,
@@ -110,9 +113,19 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         return None
 
     @property
-    def color_map_markers(self) -> bool:
-        """Whether to colour map markers by availability (via entity_picture)."""
-        return bool(self._option(CONF_COLOR_MAP_MARKERS, DEFAULT_COLOR_MAP_MARKERS))
+    def map_marker_style(self) -> str:
+        """Selected map-marker style for the availability ``entity_picture``.
+
+        Falls back to the legacy ``color_map_markers`` boolean (an enabled
+        legacy entry becomes the plug + status-pip style) when the newer
+        style option has not been set.
+        """
+        style = self._option(CONF_MAP_MARKER_STYLE, None)
+        if style in MARKER_STYLES:
+            return style
+        if self._option(CONF_COLOR_MAP_MARKERS, False):
+            return MARKER_STYLE_PIP
+        return DEFAULT_MAP_MARKER_STYLE
 
     async def _async_update_data(self) -> dict[str, TrackedEvse]:
         """Refresh master data if stale, then poll live status and merge."""

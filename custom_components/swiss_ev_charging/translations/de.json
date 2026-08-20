@@ -37,8 +37,18 @@
           "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
           "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
           "notify_service": "Notify-Ziel (beliebige Notify-Entität; leer = persistente Benachrichtigung)",
-          "color_map_markers": "Kartenmarker nach Verfügbarkeit einfärben (ersetzt überall das Symbol)"
+          "map_marker_style": "Kartenmarker-Stil (färbt den Marker nach Verfügbarkeit; ersetzt das Symbol ausser bei Aus)"
         }
+      }
+    }
+  },
+  "selector": {
+    "map_marker_style": {
+      "options": {
+        "off": "Aus (Standardsymbol behalten)",
+        "dot": "Farbiger Punkt",
+        "glyph": "Symbol je Zustand (Stecker / Blitz / Sanduhr / Schraubenschlüssel / Power / ?)",
+        "pip": "Stecker + Status-Punkt"
       }
     }
   },

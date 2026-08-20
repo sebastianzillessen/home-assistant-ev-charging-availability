@@ -37,8 +37,18 @@
           "tag": "Tag (applied to all stations of this entry)",
           "notify_on_available": "Notify when a station becomes available",
           "notify_service": "Notify target (any notify entity; blank = persistent notification)",
-          "color_map_markers": "Colour map markers by availability (replaces the icon everywhere)"
+          "map_marker_style": "Map marker style (colours the marker by availability; replaces the icon unless Off)"
         }
+      }
+    }
+  },
+  "selector": {
+    "map_marker_style": {
+      "options": {
+        "off": "Off (keep the default icon)",
+        "dot": "Coloured dot",
+        "glyph": "Glyph per state (plug / bolt / hourglass / wrench / power / ?)",
+        "pip": "Plug + status pip"
       }
     }
   },
