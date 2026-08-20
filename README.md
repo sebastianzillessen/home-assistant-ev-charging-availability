@@ -51,13 +51,16 @@ guessing. Connector state maps as `Free → available`,
 `Occupied`/`Car connected → occupied`, `Reserved → reserved`,
 `Maintenance → maintenance`, `Offline → out_of_service`, `Unknown → unknown`.
 
-**Move** (`CH*CCI…`, `CH*CCC…`) — via the Move app's public search endpoint
-(`app.move.ch/search`). One request covers all tracked Move stations. The join is
+**Move & roaming networks** — via the Move app's public search endpoint
+(`app.move.ch/search`). One request covers all tracked stations. The join is
 **direct and authoritative**: each returned station's id *is* the OICP `EvseID`,
 so no coordinate matching is needed. Availability maps as `available → available`,
-`occupied → occupied`, `outOfService → out_of_service`, `unknown → unknown`.
-(Move's `CH*SOC`/`CH*MMN` points are not served by this backend and are not
-recovered.)
+`occupied → occupied`, `outOfService → out_of_service`, `unknown → unknown`. The
+endpoint returns the roaming networks near the queried point, not just Move's own
+stations, so it also fills live status the SFOE feed leaves `unknown` for
+**Repower / PLUG N ROLL** (`CH*REP…`), **AVIA VOLT** (`CH*AVI…`) and **Power Up**
+(`CH*POW…`) in addition to Move itself (`CH*CCI…`, `CH*CCC…`). (Move's
+`CH*SOC`/`CH*MMN` points are not served by this backend and are not recovered.)
 
 ### Coverage and known gaps by operator
 
@@ -72,26 +75,26 @@ leaves dark.
 | Operator | Share of all points | No live status | Recoverable without an API key? |
 | --- | --: | --: | --- |
 | **eCarUp** | ~35% | ~32% | ✅ **Yes — implemented** (public map API) |
-| **Move** | ~13% | ~22% | ✅ **Yes — implemented** (public app search API; `CH*CCI`/`CH*CCC` only) |
-| swisscharge | ~13% | ~6% | — mostly healthy |
+| **Move** | ~13% | ~22% | ✅ **Yes — implemented** (public app search API) |
+| swisscharge | ~13% | ~6% | — mostly healthy (own app API unverified) |
 | Shell Recharge | ~6% | ~3% | — mostly healthy |
-| AVIA VOLT | ~3% | ~14% | ❌ No public availability endpoint found |
+| **AVIA VOLT** | ~3% | ~14% | ✅ **Yes — implemented** (via the Move search endpoint) |
 | Tesla | ~2% | **100%** | ❌ Availability API is access-controlled (HTTP 403) |
-| Power Up | ~1% | ~16% | ❌ No public endpoint found |
+| **Power Up** | ~1% | ~16% | ✅ **Yes — implemented** (via the Move search endpoint) |
 | Saascharge | ~1% | ~23% | ❌ No public endpoint found |
-| PLUG N ROLL (Repower) | ~1% | **100%** | ❌ No reachable public endpoint |
-| evpass (Green Motion) | <1% | ~95% | ❌ Map is behind authentication |
+| **PLUG N ROLL (Repower)** | ~1% | **100%** | ✅ **Yes — implemented** (via the Move search endpoint) |
+| evpass (Green Motion) | <1% | ~95% | ⚠️ Maybe (Shell Recharge map API; not yet verified) |
 | AIL | <1% | **100%** | ❌ Not on a recoverable backend |
 
 Operators reporting essentially complete live status (≈0% dark) include GoFast,
 IONITY, Electra, Lidl, Plenitude, Chargepoint and Fastned.
 
-**eCarUp and Move together cover the bulk of the gap** — they are the two
-largest operators and the two biggest sources of missing status, and both expose
-a genuinely public, key-less backend. The remaining dark operators either never
-publish live status to the roaming/SFOE layer at all (Tesla, PLUG N ROLL, AIL) or
-keep it behind their own authentication (evpass, AVIA, Power Up, Saascharge), so
-recovering them would require per-operator reverse engineering with uncertain,
+**The two key-less backends cover most of the gap.** eCarUp's map API recovers
+eCarUp, and the Move search endpoint recovers Move plus the Repower / AVIA VOLT /
+Power Up roaming networks. The operators still dark either don't publish live
+status to the roaming/SFOE layer at all (Tesla, AIL) or keep it behind their own
+authentication (Saascharge, and — pending verification — swisscharge and evpass),
+so recovering them would need per-operator reverse engineering with uncertain,
 fragile results.
 
 ## Installation

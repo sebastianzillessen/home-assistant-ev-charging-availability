@@ -21,7 +21,7 @@ from .api import (
     normalize_evse_id,
 )
 from .ecarup import async_resolve_ecarup_states, is_ecarup_evse_id
-from .move import async_resolve_move_states, is_move_evse_id
+from .move import async_resolve_move_states, is_move_search_evse_id
 from .const import (
     CONF_COLOR_MAP_MARKERS,
     CONF_LATITUDE,
@@ -189,7 +189,7 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         )
         self.move_resolved_ids = await self._async_apply_operator_fallback(
             result,
-            is_target=is_move_evse_id,
+            is_target=is_move_search_evse_id,
             resolver=async_resolve_move_states,
             label="Move",
         )
