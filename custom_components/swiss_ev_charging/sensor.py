@@ -21,24 +21,35 @@ from .coordinator import SwissEvChargingCoordinator
 from .entity import SwissEvChargingEntity
 
 # Marker colour per availability state, used when the user opts into colouring
-# map markers by availability. Named CSS colours keep the SVG data URI free of
-# the ``#`` that would otherwise be read as a URI fragment.
+# map markers by availability. Home Assistant masks ``entity_picture`` to a
+# circle on the map, so the marker is a state-coloured disc with a white
+# lightning glyph (a teardrop pin would have its point clipped off).
 _MARKER_COLORS: dict[str, str] = {
-    STATE_AVAILABLE: "limegreen",
-    STATE_OCCUPIED: "red",
-    STATE_RESERVED: "orange",
-    STATE_OUT_OF_SERVICE: "gray",
-    STATE_MAINTENANCE: "mediumpurple",
+    STATE_AVAILABLE: "#16a34a",
+    STATE_OCCUPIED: "#dc2626",
+    STATE_RESERVED: "#d97706",
+    STATE_MAINTENANCE: "#7c3aed",
+    STATE_OUT_OF_SERVICE: "#64748b",
 }
-_MARKER_COLOR_UNKNOWN = "lightgray"
+_MARKER_COLOR_UNKNOWN = "#94a3b8"
+
+# White lightning glyph, centred and scaled to sit inside the disc.
+_MARKER_BOLT = (
+    "<g transform='translate(2.16 2.16) scale(0.82)'>"
+    "<path d='M13 2 L6 13 H11 L10 22 L18 9 H13 Z' fill='#fff'/></g>"
+)
 
 
 def marker_picture(state: str | None) -> str:
-    """Return a ``data:`` URI of a coloured dot for an availability ``state``."""
+    """Return a ``data:`` URI of a state-coloured charger badge for the map."""
     color = _MARKER_COLORS.get(state, _MARKER_COLOR_UNKNOWN)
     svg = (
-        "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'>"
-        f"<circle cx='12' cy='12' r='11' fill='{color}'/></svg>"
+        "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' "
+        "viewBox='0 0 24 24'>"
+        f"<circle cx='12' cy='12' r='11' fill='{color}'/>"
+        "<circle cx='12' cy='12' r='11' fill='none' "
+        "stroke='rgba(0,0,0,0.18)' stroke-width='1'/>"
+        f"{_MARKER_BOLT}</svg>"
     )
     return "data:image/svg+xml," + quote(svg)
 
