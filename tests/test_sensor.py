@@ -10,6 +10,9 @@ from custom_components.swiss_ev_charging.const import (
     MARKER_STYLE_DOT,
     MARKER_STYLE_GLYPH,
     MARKER_STYLE_PIP,
+    POWER_TIER_FAST,
+    POWER_TIER_STANDARD,
+    POWER_TIER_ULTRA,
     STATE_AVAILABLE,
     STATE_MAINTENANCE,
     STATE_OCCUPIED,
@@ -17,7 +20,11 @@ from custom_components.swiss_ev_charging.const import (
     STATE_RESERVED,
     STATE_UNKNOWN,
 )
-from custom_components.swiss_ev_charging.sensor import marker_picture
+from custom_components.swiss_ev_charging.sensor import (
+    format_connector,
+    marker_picture,
+    power_tier,
+)
 
 # A path fragment unique to each glyph, used to assert the right shape is drawn.
 _PLUG = "M7.6 8.2"
@@ -112,3 +119,58 @@ def test_marker_picture_is_url_safe(style: str) -> None:
     payload = marker_picture(STATE_OCCUPIED, style).split(",", 1)[1]
     assert " " not in payload
     assert "<" not in payload and ">" not in payload
+
+
+@pytest.mark.parametrize(
+    "kw, tier",
+    [
+        (None, POWER_TIER_STANDARD),
+        (3.7, POWER_TIER_STANDARD),
+        (22.0, POWER_TIER_STANDARD),
+        (49.9, POWER_TIER_STANDARD),
+        (50.0, POWER_TIER_FAST),
+        (149.0, POWER_TIER_FAST),
+        (150.0, POWER_TIER_ULTRA),
+        (350.0, POWER_TIER_ULTRA),
+    ],
+)
+def test_power_tier_thresholds(kw: float | None, tier: str) -> None:
+    """Power classifies into standard (<50), fast (50-149), ultra (>=150)."""
+    assert power_tier(kw) == tier
+
+
+def test_marker_tier_ring_present_only_for_fast_and_ultra() -> None:
+    """The tier ring is drawn for fast/ultra chargers and absent for standard."""
+    standard = _svg_of(STATE_AVAILABLE, MARKER_STYLE_DOT, POWER_TIER_STANDARD)
+    fast = _svg_of(STATE_AVAILABLE, MARKER_STYLE_DOT, POWER_TIER_FAST)
+    ultra = _svg_of(STATE_AVAILABLE, MARKER_STYLE_DOT, POWER_TIER_ULTRA)
+    # The enlarged viewBox leaves room for the outer ring(s).
+    assert "viewBox='-2 -2 28 28'" in standard
+    assert "r='12.7'" not in standard  # no ring
+    assert standard.count("r='12.7'") == 0
+    assert fast.count("r='12.7'") == 2  # one white ring + its dark hairline
+    assert "r='14.4'" not in fast
+    assert ultra.count("r='12.7'") == 2 and ultra.count("r='14.4'") == 2  # two rings
+
+
+def _svg_of(state: str, style: str, tier: str) -> str:
+    """Decoded SVG body of a tiered marker."""
+    return unquote(marker_picture(state, style, tier).split(",", 1)[1])
+
+
+@pytest.mark.parametrize(
+    "plugs, power_type, expected",
+    [
+        (["CCS Combo 2 Plug (Cable Attached)"], "DC", "CCS Combo 2 · DC"),
+        (["Type 2 Outlet"], "AC_3_PHASE", "Type 2 · AC 3-phase"),
+        (["CHAdeMO"], "DC", "CHAdeMO · DC"),
+        (["Type 2 Outlet", "Type 2 Connector (Cable Attached)"], None, "Type 2"),
+        ([], None, None),
+        ([], "DC", "DC"),
+    ],
+)
+def test_format_connector(
+    plugs: list[str], power_type: str | None, expected: str | None
+) -> None:
+    """Connector label shortens plug strings, de-dupes, and appends AC/DC."""
+    assert format_connector(plugs, power_type) == expected

@@ -42,6 +42,14 @@ CONF_TAG: Final = "tag"
 CONF_NOTIFY_ON_AVAILABLE: Final = "notify_on_available"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
 CONF_MAP_MARKER_STYLE: Final = "map_marker_style"
+CONF_NAME_WITH_POWER: Final = "name_with_power"
+
+# Power tiers (kW) for the map-marker outer ring: standard / fast / ultra (HPC).
+POWER_TIER_FAST_KW: Final = 50.0
+POWER_TIER_ULTRA_KW: Final = 150.0
+POWER_TIER_STANDARD: Final = "standard"
+POWER_TIER_FAST: Final = "fast"
+POWER_TIER_ULTRA: Final = "ultra"
 # Legacy boolean (0.5.x/0.6.x); superseded by CONF_MAP_MARKER_STYLE but still
 # read for backward compatibility with existing config entries.
 CONF_COLOR_MAP_MARKERS: Final = "color_map_markers"
@@ -67,6 +75,7 @@ MIN_SCAN_INTERVAL: Final = 60  # seconds, be respectful of the public endpoint
 
 DEFAULT_NOTIFY_ON_AVAILABLE: Final = False
 DEFAULT_MAP_MARKER_STYLE: Final = MARKER_STYLE_OFF
+DEFAULT_NAME_WITH_POWER: Final = False
 DEFAULT_COLOR_MAP_MARKERS: Final = False
 
 # Master (static) data is large and rarely changes; refresh it infrequently.

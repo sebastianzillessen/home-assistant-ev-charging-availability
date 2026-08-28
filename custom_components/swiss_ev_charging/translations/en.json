@@ -37,7 +37,8 @@
           "tag": "Tag (applied to all stations of this entry)",
           "notify_on_available": "Notify when a station becomes available",
           "notify_service": "Notify target (any notify entity; blank = persistent notification)",
-          "map_marker_style": "Map marker style (colours the marker by availability; replaces the icon unless Off)"
+          "map_marker_style": "Map marker style (colours the marker by availability; replaces the icon unless Off)",
+          "name_with_power": "Append the rated power to each station name (also shown on the map)"
         }
       }
     }
@@ -64,6 +65,12 @@
           "maintenance": "Maintenance",
           "unknown": "Unknown"
         }
+      },
+      "power": {
+        "name": "Power"
+      },
+      "connector": {
+        "name": "Connector"
       }
     },
     "binary_sensor": {

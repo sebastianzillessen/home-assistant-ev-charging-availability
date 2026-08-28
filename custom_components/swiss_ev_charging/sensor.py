@@ -5,6 +5,7 @@ from __future__ import annotations
 from urllib.parse import quote
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -14,6 +15,11 @@ from .const import (
     MARKER_STYLE_GLYPH,
     MARKER_STYLE_OFF,
     MARKER_STYLE_PIP,
+    POWER_TIER_FAST,
+    POWER_TIER_FAST_KW,
+    POWER_TIER_STANDARD,
+    POWER_TIER_ULTRA,
+    POWER_TIER_ULTRA_KW,
     STATE_AVAILABLE,
     STATE_MAINTENANCE,
     STATE_OCCUPIED,
@@ -101,11 +107,47 @@ _PLUG_TF = "translate(0.8 0.8) scale(0.8)"
 _PIP_TF = "translate(11.66 11.66) scale(0.42)"
 
 
+# Outer power-tier ring(s), drawn around the disc. A fast charger gets one ring,
+# an ultra/HPC charger two — a neutral white ring with a dark hairline so it never
+# clashes with the state colour. The extra room comes from the enlarged viewBox.
+_TIER_RINGS: dict[str, str] = {
+    POWER_TIER_STANDARD: "",
+    POWER_TIER_FAST: (
+        "<circle cx='12' cy='12' r='12.7' fill='none' stroke='#fff' stroke-width='1.7'/>"
+        "<circle cx='12' cy='12' r='12.7' fill='none' "
+        "stroke='rgba(0,0,0,0.28)' stroke-width='.6'/>"
+    ),
+    POWER_TIER_ULTRA: (
+        "<circle cx='12' cy='12' r='12.7' fill='none' stroke='#fff' stroke-width='1.7'/>"
+        "<circle cx='12' cy='12' r='12.7' fill='none' "
+        "stroke='rgba(0,0,0,0.28)' stroke-width='.6'/>"
+        "<circle cx='12' cy='12' r='14.4' fill='none' stroke='#fff' stroke-width='1.7'/>"
+        "<circle cx='12' cy='12' r='14.4' fill='none' "
+        "stroke='rgba(0,0,0,0.28)' stroke-width='.6'/>"
+    ),
+}
+
+
+def power_tier(max_power_kw: float | None) -> str:
+    """Classify a charger's max power into a marker tier (standard/fast/ultra)."""
+    if max_power_kw is None:
+        return POWER_TIER_STANDARD
+    if max_power_kw >= POWER_TIER_ULTRA_KW:
+        return POWER_TIER_ULTRA
+    if max_power_kw >= POWER_TIER_FAST_KW:
+        return POWER_TIER_FAST
+    return POWER_TIER_STANDARD
+
+
 def _svg(inner: str) -> str:
-    """Wrap marker ``inner`` in a 24x24 SVG and return it as a ``data:`` URI."""
+    """Wrap marker ``inner`` in an SVG and return it as a ``data:`` URI.
+
+    The viewBox carries a 4-unit margin around the 24x24 design box so the
+    power-tier rings drawn outside the disc are not clipped.
+    """
     svg = (
-        "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' "
-        f"viewBox='0 0 24 24'>{inner}</svg>"
+        "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' "
+        f"viewBox='-2 -2 28 28'>{inner}</svg>"
     )
     return "data:image/svg+xml," + quote(svg)
 
@@ -118,16 +160,18 @@ def _disc(color: str) -> str:
     )
 
 
-def marker_picture(state: str | None, style: str) -> str:
-    """Return a ``data:`` URI marker for ``state`` rendered in ``style``."""
+def marker_picture(state: str | None, style: str, tier: str = POWER_TIER_STANDARD) -> str:
+    """Return a ``data:`` URI marker for ``state``/``style`` with a power ``tier``."""
     color = _MARKER_COLORS.get(state, _MARKER_COLOR_UNKNOWN)
+    ring = _TIER_RINGS.get(tier, "")
     if style == MARKER_STYLE_GLYPH:
         name = _GLYPH_STATE.get(state, _GLYPH_UNKNOWN)
-        return _svg(_disc(color) + _SYM[name].format(c="#fff"))
+        return _svg(ring + _disc(color) + _SYM[name].format(c="#fff"))
     if style == MARKER_STYLE_PIP:
         pip_name = _PIP_STATE.get(state, _GLYPH_UNKNOWN)
         return _svg(
-            _disc(color)
+            ring
+            + _disc(color)
             + f"<g transform='{_PLUG_TF}'>{_SYM['plug'].format(c='#fff')}</g>"
             + "<circle cx='16.7' cy='16.7' r='5.5' fill='#fff'/>"
             + "<circle cx='16.7' cy='16.7' r='5.5' fill='none' "
@@ -135,7 +179,7 @@ def marker_picture(state: str | None, style: str) -> str:
             + f"<g transform='{_PIP_TF}'>{_SYM[pip_name].format(c=color)}</g>"
         )
     # MARKER_STYLE_DOT (and any unknown style): the plain bordered disc.
-    return _svg(_disc(color))
+    return _svg(ring + _disc(color))
 
 
 async def async_setup_entry(
@@ -143,12 +187,14 @@ async def async_setup_entry(
     entry: SwissEvChargingConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up one availability sensor per tracked charging point."""
+    """Set up the availability, power and connector sensors per charging point."""
     coordinator = entry.runtime_data
-    async_add_entities(
-        SwissEvAvailabilitySensor(coordinator, evse_id)
-        for evse_id in coordinator.data
-    )
+    entities: list[SwissEvChargingEntity] = []
+    for evse_id in coordinator.data:
+        entities.append(SwissEvAvailabilitySensor(coordinator, evse_id))
+        entities.append(SwissEvPowerSensor(coordinator, evse_id))
+        entities.append(SwissEvConnectorSensor(coordinator, evse_id))
+    async_add_entities(entities)
 
 
 class SwissEvAvailabilitySensor(SwissEvChargingEntity, SensorEntity):
@@ -183,7 +229,9 @@ class SwissEvAvailabilitySensor(SwissEvChargingEntity, SensorEntity):
         style = self.coordinator.map_marker_style
         if tracked is None or style == MARKER_STYLE_OFF:
             return None
-        return marker_picture(tracked.state, style)
+        return marker_picture(
+            tracked.state, style, power_tier(tracked.point.max_power_kw)
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, object]:
@@ -202,6 +250,7 @@ class SwissEvAvailabilitySensor(SwissEvChargingEntity, SensorEntity):
             "operator": point.operator,
             "plug_types": point.plugs,
             "max_power_kw": point.max_power_kw,
+            "power_type": point.power_type,
             "distance_km": distance_km,
             "address": point.address,
             "latitude": point.latitude,
@@ -211,3 +260,79 @@ class SwissEvAvailabilitySensor(SwissEvChargingEntity, SensorEntity):
         if self.coordinator.tag:
             attributes["tag"] = self.coordinator.tag
         return attributes
+
+
+# Friendly labels for the OICP ``powertype`` codes.
+_POWER_TYPE_LABELS: dict[str, str] = {
+    "AC_1_PHASE": "AC 1-phase",
+    "AC_3_PHASE": "AC 3-phase",
+    "DC": "DC",
+}
+# Verbose suffixes stripped from the raw OICP plug strings for display.
+_PLUG_NOISE = (" Plug (Cable Attached)", " (Cable Attached)", " Outlet", " Connector")
+
+
+def _short_plug(plug: str) -> str:
+    """Shorten a raw OICP plug string for display (e.g. drop ``Outlet``)."""
+    text = plug
+    for noise in _PLUG_NOISE:
+        text = text.replace(noise, "")
+    return text.strip()
+
+
+def format_connector(plugs: list[str], power_type: str | None) -> str | None:
+    """Build a compact connector label, e.g. ``"CCS Combo 2 · DC"``."""
+    seen: list[str] = []
+    for plug in plugs:
+        short = _short_plug(plug)
+        if short and short not in seen:
+            seen.append(short)
+    parts: list[str] = []
+    if seen:
+        parts.append(" / ".join(seen))
+    if power_type:
+        parts.append(_POWER_TYPE_LABELS.get(power_type, power_type))
+    return " · ".join(parts) if parts else None
+
+
+class SwissEvPowerSensor(SwissEvChargingEntity, SensorEntity):
+    """The charging point's rated maximum power (kW)."""
+
+    _attr_translation_key = "power"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
+
+    def __init__(
+        self, coordinator: SwissEvChargingCoordinator, evse_id: str
+    ) -> None:
+        """Initialise the power sensor."""
+        super().__init__(coordinator, evse_id)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_{evse_id}_power"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the rated maximum power in kW."""
+        tracked = self._tracked
+        return tracked.point.max_power_kw if tracked else None
+
+
+class SwissEvConnectorSensor(SwissEvChargingEntity, SensorEntity):
+    """The charging point's connector type (plug + AC/DC)."""
+
+    _attr_translation_key = "connector"
+    _attr_icon = "mdi:power-plug"
+
+    def __init__(
+        self, coordinator: SwissEvChargingCoordinator, evse_id: str
+    ) -> None:
+        """Initialise the connector sensor."""
+        super().__init__(coordinator, evse_id)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_{evse_id}_connector"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the compact connector label, e.g. ``"CCS Combo 2 · DC"``."""
+        tracked = self._tracked
+        if tracked is None:
+            return None
+        return format_connector(tracked.point.plugs, tracked.point.power_type)

@@ -5,9 +5,23 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .api import ChargingPoint
 from .const import DOMAIN
 from .coordinator import SwissEvChargingCoordinator, TrackedEvse
 from .map_link import station_map_url
+
+
+def _format_power(kw: float) -> str:
+    """Render a power in kW without a trailing ``.0`` (e.g. ``"224 kW"``)."""
+    return f"{kw:g} kW"
+
+
+def _device_name(coordinator: SwissEvChargingCoordinator, point: ChargingPoint) -> str:
+    """Device name, optionally suffixed with the rated power for map labels."""
+    base = point.name or point.evse_id
+    if coordinator.name_with_power and point.max_power_kw is not None:
+        return f"{base} · {_format_power(point.max_power_kw)}"
+    return base
 
 
 class SwissEvChargingEntity(CoordinatorEntity[SwissEvChargingCoordinator]):
@@ -24,7 +38,7 @@ class SwissEvChargingEntity(CoordinatorEntity[SwissEvChargingCoordinator]):
         point = coordinator.data[evse_id].point
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, evse_id)},
-            name=point.name or evse_id,
+            name=_device_name(coordinator, point),
             manufacturer=point.operator or "ich-tanke-strom",
             model="EV charging point",
             configuration_url=station_map_url(
