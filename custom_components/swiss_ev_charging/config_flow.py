@@ -29,6 +29,7 @@ from .const import (
     CONF_MAP_MARKER_STYLE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
+    CONF_NAME_WITH_POWER,
     CONF_NOTIFY_ON_AVAILABLE,
     CONF_NOTIFY_SERVICE,
     CONF_PINNED_EVSE_IDS,
@@ -37,6 +38,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_TAG,
     DEFAULT_MAP_MARKER_STYLE,
+    DEFAULT_NAME_WITH_POWER,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
@@ -213,6 +215,9 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                 CONF_MAP_MARKER_STYLE: user_input.get(
                     CONF_MAP_MARKER_STYLE, DEFAULT_MAP_MARKER_STYLE
                 ),
+                CONF_NAME_WITH_POWER: user_input.get(
+                    CONF_NAME_WITH_POWER, DEFAULT_NAME_WITH_POWER
+                ),
             }
             return self.async_create_entry(title="", data=options)
 
@@ -263,6 +268,12 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
                     CONF_MAP_MARKER_STYLE,
                     default=_marker_style_default(current),
                 ): _marker_style_selector(),
+                vol.Optional(
+                    CONF_NAME_WITH_POWER,
+                    default=current.get(
+                        CONF_NAME_WITH_POWER, DEFAULT_NAME_WITH_POWER
+                    ),
+                ): bool,
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

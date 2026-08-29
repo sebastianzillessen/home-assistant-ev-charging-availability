@@ -37,7 +37,8 @@
           "tag": "Tag (wird auf alle Stationen dieses Eintrags angewendet)",
           "notify_on_available": "Benachrichtigen, wenn eine Station verfügbar wird",
           "notify_service": "Notify-Ziel (beliebige Notify-Entität; leer = persistente Benachrichtigung)",
-          "map_marker_style": "Kartenmarker-Stil (färbt den Marker nach Verfügbarkeit; ersetzt das Symbol ausser bei Aus)"
+          "map_marker_style": "Kartenmarker-Stil (färbt den Marker nach Verfügbarkeit; ersetzt das Symbol ausser bei Aus)",
+          "name_with_power": "Nennleistung an jeden Stationsnamen anhängen (auch auf der Karte sichtbar)"
         }
       }
     }
@@ -64,6 +65,12 @@
           "maintenance": "Wartung",
           "unknown": "Unbekannt"
         }
+      },
+      "power": {
+        "name": "Leistung"
+      },
+      "connector": {
+        "name": "Anschluss"
       }
     },
     "binary_sensor": {

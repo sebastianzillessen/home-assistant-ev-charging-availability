@@ -25,6 +25,7 @@ from custom_components.swiss_ev_charging.const import (
     CONF_MAP_MARKER_STYLE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
+    CONF_NAME_WITH_POWER,
     CONF_NOTIFY_ON_AVAILABLE,
     CONF_PINNED_EVSE_IDS,
     CONF_RADIUS,
@@ -147,6 +148,28 @@ async def test_map_marker_style_option(hass) -> None:
         hass, {CONF_PINNED_EVSE_IDS: pin, "color_map_markers": True}
     )
     assert SwissEvChargingCoordinator(hass, legacy).map_marker_style == MARKER_STYLE_PIP
+
+
+@pytest.mark.asyncio
+async def test_name_with_power_option_suffixes_device_name(hass) -> None:
+    """The name-with-power option appends the rated power to the device name."""
+    from custom_components.swiss_ev_charging.api import ChargingPoint
+    from custom_components.swiss_ev_charging.entity import _device_name
+
+    pin = ["CH*ABC*E1001"]
+    point = ChargingPoint(
+        evse_id="CH*ABC*E1001", name="Test Station", max_power_kw=224.0
+    )
+
+    off = _make_entry(hass, {CONF_PINNED_EVSE_IDS: pin})
+    coord_off = SwissEvChargingCoordinator(hass, off)
+    assert coord_off.name_with_power is False
+    assert _device_name(coord_off, point) == "Test Station"
+
+    on = _make_entry(hass, {CONF_PINNED_EVSE_IDS: pin, CONF_NAME_WITH_POWER: True})
+    coord_on = SwissEvChargingCoordinator(hass, on)
+    assert coord_on.name_with_power is True
+    assert _device_name(coord_on, point) == "Test Station · 224 kW"
 
 
 @pytest.mark.asyncio

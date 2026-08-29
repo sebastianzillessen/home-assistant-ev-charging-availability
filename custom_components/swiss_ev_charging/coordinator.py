@@ -29,6 +29,7 @@ from .const import (
     CONF_MAP_MARKER_STYLE,
     CONF_MAX_STATIONS,
     CONF_MIN_POWER,
+    CONF_NAME_WITH_POWER,
     CONF_NOTIFY_ON_AVAILABLE,
     CONF_NOTIFY_SERVICE,
     CONF_PINNED_EVSE_IDS,
@@ -37,6 +38,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_TAG,
     DEFAULT_MAP_MARKER_STYLE,
+    DEFAULT_NAME_WITH_POWER,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
@@ -126,6 +128,11 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         if self._option(CONF_COLOR_MAP_MARKERS, False):
             return MARKER_STYLE_PIP
         return DEFAULT_MAP_MARKER_STYLE
+
+    @property
+    def name_with_power(self) -> bool:
+        """Whether to append the rated power to each station's device name."""
+        return bool(self._option(CONF_NAME_WITH_POWER, DEFAULT_NAME_WITH_POWER))
 
     async def _async_update_data(self) -> dict[str, TrackedEvse]:
         """Refresh master data if stale, then poll live status and merge."""

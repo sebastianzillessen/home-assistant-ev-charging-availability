@@ -129,6 +129,7 @@ Swiss EV Charging**. You can track stations two ways (combine both):
 | Notify when available | Toggle: send a notification when a tracked station becomes available |
 | Notify service | Which `notify.*` service to call (blank = a Home Assistant persistent notification) |
 | Map marker style | Colour map markers by availability — off / coloured dot / glyph per state / plug + status pip (see [Showing the chargers on the map](#showing-the-chargers-on-the-map)) |
+| Append power to name | Suffix each station name with its rated power (e.g. `· 224 kW`), so it shows on the map marker label |
 
 At least a location **or** one pinned EVSE ID is required. Radius, filters,
 pinned IDs and the interval can be changed later via the integration's
@@ -140,7 +141,11 @@ For each tracked charging point you get:
 
 - **Availability sensor** (enum): `available` / `occupied` / `reserved` /
   `out_of_service` / `maintenance` / `unknown`, with attributes `operator`, `plug_types`,
-  `max_power_kw`, `distance_km`, `address`, `latitude`, `longitude`, `is_pinned`.
+  `max_power_kw`, `power_type`, `distance_km`, `address`, `latitude`, `longitude`, `is_pinned`.
+- **Power sensor** (kW): the charging point's rated maximum power — a first-class
+  value for dashboards and the details page, not just an attribute.
+- **Connector sensor**: the plug type and current type, e.g. `CCS Combo 2 · DC`
+  or `Type 2 · AC 3-phase`.
 - **"Is free" binary sensor**: on when the point is available — convenient for
   automations.
 
@@ -174,6 +179,18 @@ The glyph and pip styles encode the state as a **shape**, not just a colour, so
 they stay legible in greyscale and for red-green colour vision deficiency.
 Colours: green = available, red = occupied, orange = reserved,
 purple = maintenance, grey = out of service, light grey = unknown.
+
+**Charging speed** is shown by a neutral outer ring on any coloured style — no
+ring for standard chargers (< 50 kW), one ring for fast DC (50–149 kW) and two
+for ultra/HPC (≥ 150 kW) — so fast chargers stand out on the map at a glance
+without a separate filter.
+
+To also put the **power in the marker label**, enable **"Append the rated power
+to each station name"** (integration → *Configure*). Station names then read e.g.
+`MOVE La Côte · 224 kW`, which shows on the marker popup. (It changes the friendly
+name everywhere, not just the map, so it is off by default.) If your Home
+Assistant `map` card supports an attribute label, you can instead label markers by
+the `max_power_kw` attribute with no rename.
 
 Note the trade-off: because a marker's image is the entity's `entity_picture`,
 which Home Assistant also uses everywhere else, any style other than *Off*

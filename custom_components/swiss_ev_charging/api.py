@@ -37,6 +37,7 @@ class ChargingPoint:
     operator: str | None = None
     plugs: list[str] = field(default_factory=list)
     max_power_kw: float | None = None
+    power_type: str | None = None  # e.g. "AC_3_PHASE" / "DC" (of the strongest facility)
     latitude: float | None = None
     longitude: float | None = None
     address: str | None = None
@@ -86,6 +87,9 @@ def parse_evse_data(payload: dict) -> dict[str, ChargingPoint]:
                 latitude, longitude = _parse_coordinates(
                     record.get("GeoCoordinates")
                 )
+                max_power_kw, power_type = _strongest_facility(
+                    record.get("ChargingFacilities")
+                )
                 points[evse_id] = ChargingPoint(
                     evse_id=evse_id,
                     name=_first_localized(record.get("ChargingStationNames")),
@@ -95,7 +99,8 @@ def parse_evse_data(payload: dict) -> dict[str, ChargingPoint]:
                         for p in _as_list(record.get("Plugs"))
                         if isinstance(p, str)
                     ],
-                    max_power_kw=_max_power(record.get("ChargingFacilities")),
+                    max_power_kw=max_power_kw,
+                    power_type=power_type,
                     latitude=latitude,
                     longitude=longitude,
                     address=_format_address(record.get("Address")),
@@ -205,21 +210,27 @@ def _first_localized(names: object) -> str | None:
     return None
 
 
-def _max_power(facilities: object) -> float | None:
-    """Return the highest power (kW) across the charging facilities.
+def _strongest_facility(facilities: object) -> tuple[float | None, str | None]:
+    """Return ``(max_power_kw, power_type)`` of the highest-power facility.
 
-    The real feed uses a lowercase ``power`` key whose value is a string
-    (e.g. ``"22.0"``); older/other OICP variants use ``Power`` as a number.
-    Both are handled.
+    The real feed uses lowercase ``power`` (a string like ``"22.0"``) and
+    ``powertype`` (e.g. ``"AC_3_PHASE"`` / ``"DC"``); older/other OICP variants
+    use ``Power`` (number) and ``PowerType``. Both are handled. The power type is
+    taken from the same facility that defines the maximum power.
     """
-    powers = []
+    best_power: float | None = None
+    best_type: str | None = None
     for facility in _as_list(facilities):
         if not isinstance(facility, dict):
             continue
         power = _to_float(facility.get("power", facility.get("Power")))
-        if power is not None:
-            powers.append(power)
-    return max(powers) if powers else None
+        if power is None:
+            continue
+        if best_power is None or power > best_power:
+            best_power = power
+            power_type = facility.get("powertype", facility.get("PowerType"))
+            best_type = power_type if isinstance(power_type, str) else None
+    return best_power, best_type
 
 
 def _to_float(value: object) -> float | None:
