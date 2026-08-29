@@ -144,13 +144,14 @@ def test_marker_tier_ring_present_only_for_fast_and_ultra() -> None:
     standard = _svg_of(STATE_AVAILABLE, MARKER_STYLE_DOT, POWER_TIER_STANDARD)
     fast = _svg_of(STATE_AVAILABLE, MARKER_STYLE_DOT, POWER_TIER_FAST)
     ultra = _svg_of(STATE_AVAILABLE, MARKER_STYLE_DOT, POWER_TIER_ULTRA)
-    # The enlarged viewBox leaves room for the outer ring(s).
-    assert "viewBox='-2 -2 28 28'" in standard
-    assert "r='12.7'" not in standard  # no ring
-    assert standard.count("r='12.7'") == 0
-    assert fast.count("r='12.7'") == 2  # one white ring + its dark hairline
-    assert "r='14.4'" not in fast
-    assert ultra.count("r='12.7'") == 2 and ultra.count("r='14.4'") == 2  # two rings
+    # The enlarged viewBox leaves room for the outer ring(s) without clipping.
+    assert "viewBox='-2.5 -2.5 29 29'" in standard
+    assert standard.count("r='12.3'") == 0  # no ring
+    assert "r='13.6'" not in standard
+    assert fast.count("r='12.3'") == 2  # one thin ring = white line + dark hairline
+    assert "r='13.6'" not in fast
+    # Ultra: two rings, and the outer ring stays inside the usable radius (14.5).
+    assert ultra.count("r='12.3'") == 2 and ultra.count("r='13.6'") == 2
 
 
 def _svg_of(state: str, style: str, tier: str) -> str:

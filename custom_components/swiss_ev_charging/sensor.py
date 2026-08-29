@@ -108,23 +108,27 @@ _PIP_TF = "translate(11.66 11.66) scale(0.42)"
 
 
 # Outer power-tier ring(s), drawn around the disc. A fast charger gets one ring,
-# an ultra/HPC charger two — a neutral white ring with a dark hairline so it never
-# clashes with the state colour. The extra room comes from the enlarged viewBox.
+# an ultra/HPC charger two — thin neutral rings (a white line + a dark hairline so
+# they read on both light and dark map tiles) that never clash with the state
+# colour. Radii stay within the canvas/circle mask (usable radius 14.5) so nothing
+# is clipped, with a clear gap between the two ultra rings.
+_TIER_INNER_R = "12.3"
+_TIER_OUTER_R = "13.6"
+
+
+def _tier_ring(radius: str) -> str:
+    """One thin ring: a white line with a dark hairline, at ``radius``."""
+    return (
+        f"<circle cx='12' cy='12' r='{radius}' fill='none' stroke='#fff' stroke-width='.9'/>"
+        f"<circle cx='12' cy='12' r='{radius}' fill='none' "
+        "stroke='rgba(0,0,0,0.28)' stroke-width='.4'/>"
+    )
+
+
 _TIER_RINGS: dict[str, str] = {
     POWER_TIER_STANDARD: "",
-    POWER_TIER_FAST: (
-        "<circle cx='12' cy='12' r='12.7' fill='none' stroke='#fff' stroke-width='1.7'/>"
-        "<circle cx='12' cy='12' r='12.7' fill='none' "
-        "stroke='rgba(0,0,0,0.28)' stroke-width='.6'/>"
-    ),
-    POWER_TIER_ULTRA: (
-        "<circle cx='12' cy='12' r='12.7' fill='none' stroke='#fff' stroke-width='1.7'/>"
-        "<circle cx='12' cy='12' r='12.7' fill='none' "
-        "stroke='rgba(0,0,0,0.28)' stroke-width='.6'/>"
-        "<circle cx='12' cy='12' r='14.4' fill='none' stroke='#fff' stroke-width='1.7'/>"
-        "<circle cx='12' cy='12' r='14.4' fill='none' "
-        "stroke='rgba(0,0,0,0.28)' stroke-width='.6'/>"
-    ),
+    POWER_TIER_FAST: _tier_ring(_TIER_INNER_R),
+    POWER_TIER_ULTRA: _tier_ring(_TIER_INNER_R) + _tier_ring(_TIER_OUTER_R),
 }
 
 
@@ -142,12 +146,13 @@ def power_tier(max_power_kw: float | None) -> str:
 def _svg(inner: str) -> str:
     """Wrap marker ``inner`` in an SVG and return it as a ``data:`` URI.
 
-    The viewBox carries a 4-unit margin around the 24x24 design box so the
-    power-tier rings drawn outside the disc are not clipped.
+    The viewBox carries a margin around the 24x24 design box (usable radius 14.5)
+    so the power-tier rings drawn outside the disc are not clipped — neither by the
+    viewBox nor by the circle Home Assistant masks ``entity_picture`` to.
     """
     svg = (
-        "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' "
-        f"viewBox='-2 -2 28 28'>{inner}</svg>"
+        "<svg xmlns='http://www.w3.org/2000/svg' width='29' height='29' "
+        f"viewBox='-2.5 -2.5 29 29'>{inner}</svg>"
     )
     return "data:image/svg+xml," + quote(svg)
 
