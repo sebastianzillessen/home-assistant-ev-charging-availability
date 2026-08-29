@@ -119,14 +119,15 @@ Swiss EV Charging**. You can track stations two ways (combine both):
 | Option | Description |
 | --- | --- |
 | Latitude / Longitude | Origin for nearby discovery (defaults to your HA home location) |
-| Search radius (m) | Only stations within this radius are considered |
+| Display radius (m) | Which stations are tracked and shown on the map (default 2 km) |
+| Alert radius (m) | Only stations within this radius may fire the "became available" alert. `0` = same as the display radius (options dialog only) |
 | Max nearby stations | Number of closest stations to expose as entities |
 | Minimum power (kW) | Filter out chargers below this power |
 | Plug type filter | Comma-separated substrings, e.g. `CCS` |
 | Pinned EVSE IDs | Comma-separated `EvseID`s to always track (e.g. the charger near your flat) |
 | Polling interval (s) | Default 180 s; minimum 60 s |
 | Tag | Free-text label applied to every station of this entry (exposed as a `tag` attribute) |
-| Notify when available | Toggle: send a notification when a tracked station becomes available |
+| Notify when available | Toggle: send a notification when a station becomes available (subject to the alert scope below) |
 | Notify service | Which `notify.*` service to call (blank = a Home Assistant persistent notification) |
 | Map marker style | Colour map markers by availability — off / coloured dot / glyph per state / plug + status pip (see [Showing the chargers on the map](#showing-the-chargers-on-the-map)) |
 | Append power to name | Suffix each station name with its rated power (e.g. `· 224 kW`), so it shows on the map marker label |
@@ -134,6 +135,18 @@ Swiss EV Charging**. You can track stations two ways (combine both):
 At least a location **or** one pinned EVSE ID is required. Radius, filters,
 pinned IDs and the interval can be changed later via the integration's
 **Configure** (options) dialog.
+
+**Display vs. alert radius.** The **display radius** (larger, default 2 km) decides
+which stations are queried and shown on the map; the **alert radius** (smaller) is
+the tighter zone that actually triggers a "became available" notification — so you
+can watch a wide area on the map but only be pinged about chargers close to you.
+Leave the alert radius at `0` to alert for everything shown.
+
+**Alert scope.** As soon as you **pin** any station, alerts switch to
+**pinned-only** — the alert radius is ignored and you are notified only about your
+pinned chargers. With no pins, every station within the alert radius alerts.
+(Existing setups created before this split keep their old single radius for both,
+so nothing changes until you set the new values.)
 
 ## Entities
 

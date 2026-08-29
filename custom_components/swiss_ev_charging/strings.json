@@ -7,7 +7,7 @@
         "data": {
           "latitude": "Latitude",
           "longitude": "Longitude",
-          "radius": "Search radius (metres)",
+          "display_radius": "Display radius (metres) — which stations are shown",
           "max_stations": "Max nearby stations",
           "min_power": "Minimum power (kW)",
           "plug_types": "Plug type filter (comma separated)",
@@ -28,7 +28,8 @@
       "init": {
         "title": "Swiss EV Charging options",
         "data": {
-          "radius": "Search radius (metres)",
+          "display_radius": "Display radius (metres) — which stations are shown",
+          "alert_radius": "Alert radius (metres) — 0 = same as display radius",
           "max_stations": "Max nearby stations",
           "min_power": "Minimum power (kW)",
           "plug_types": "Plug type filter (comma separated)",

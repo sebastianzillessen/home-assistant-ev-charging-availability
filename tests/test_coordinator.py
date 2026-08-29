@@ -20,6 +20,8 @@ from custom_components.swiss_ev_charging.api import (
     parse_evse_status,
 )
 from custom_components.swiss_ev_charging.const import (
+    CONF_ALERT_RADIUS,
+    CONF_DISPLAY_RADIUS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_MAP_MARKER_STYLE,
@@ -208,6 +210,106 @@ async def test_notify_on_available_transition(hass) -> None:
     )
     await hass.async_block_till_done()
     assert len(calls) == 1
+
+
+# Fixture distances from the origin 47.3769, 8.5417: E1001 = 0 m, E1002 = 2556 m.
+_ORIGIN = {CONF_LATITUDE: 47.3769, CONF_LONGITUDE: 8.5417}
+
+
+async def _transition_to_available(hass, coordinator, master):
+    """Poll occupied then available for both Zürich stations; return notify calls."""
+    calls = async_mock_service(hass, "persistent_notification", "create")
+    both = ("CH*ABC*E1001", "CH*ABC*E1002")
+    coordinator.data = await _run(
+        hass, coordinator, master, {e: STATE_OCCUPIED for e in both}
+    )
+    await hass.async_block_till_done()
+    coordinator.data = await _run(
+        hass, coordinator, master, {e: STATE_AVAILABLE for e in both}
+    )
+    await hass.async_block_till_done()
+    return calls
+
+
+@pytest.mark.asyncio
+async def test_alert_radius_gates_nearby_notifications(hass) -> None:
+    """With no pins, only stations within the alert radius alert."""
+    master = parse_evse_data(load_fixture("evse_data.json"))
+    entry = _make_entry(
+        hass,
+        {
+            **_ORIGIN,
+            CONF_DISPLAY_RADIUS: 5000,  # both stations shown
+            CONF_ALERT_RADIUS: 1000,  # only E1001 (0 m) may alert; E1002 is 2556 m
+            CONF_NOTIFY_ON_AVAILABLE: True,
+        },
+    )
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+    # Both are tracked/shown ...
+    calls = await _transition_to_available(hass, coordinator, master)
+    assert set(coordinator.data) == {"CH*ABC*E1001", "CH*ABC*E1002"}
+    # ... but only the one inside the alert radius fires.
+    assert len(calls) == 1
+    assert "Bahnhofstrasse" in calls[0].data["message"]  # E1001
+    assert "Seefeld" not in calls[0].data["message"]  # E1002 suppressed
+
+
+@pytest.mark.asyncio
+async def test_pinned_present_means_only_pinned_alert(hass) -> None:
+    """Once any station is pinned, only pinned stations alert (radius ignored)."""
+    master = parse_evse_data(load_fixture("evse_data.json"))
+    entry = _make_entry(
+        hass,
+        {
+            **_ORIGIN,
+            CONF_DISPLAY_RADIUS: 5000,
+            CONF_ALERT_RADIUS: 1000,
+            CONF_PINNED_EVSE_IDS: ["CH*ABC*E1002"],  # far pin
+            CONF_NOTIFY_ON_AVAILABLE: True,
+        },
+    )
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+    calls = await _transition_to_available(hass, coordinator, master)
+    # E1001 is within the alert radius but NOT pinned, so it is suppressed;
+    # only the pinned E1002 alerts.
+    assert len(calls) == 1
+    assert "Seefeld" in calls[0].data["message"]  # E1002 (pinned)
+
+
+@pytest.mark.asyncio
+async def test_display_radius_drives_selection(hass) -> None:
+    """The display radius (not the alert radius) decides which stations are shown."""
+    master = parse_evse_data(load_fixture("evse_data.json"))
+    status = parse_evse_status(load_fixture("evse_status.json"))
+
+    narrow = SwissEvChargingCoordinator(
+        hass, _make_entry(hass, {**_ORIGIN, CONF_DISPLAY_RADIUS: 2000})
+    )
+    data = await _run(hass, narrow, master, status)
+    assert "CH*ABC*E1001" in data  # 0 m
+    assert "CH*ABC*E1002" not in data  # 2556 m > 2000
+
+    wide = SwissEvChargingCoordinator(
+        hass, _make_entry(hass, {**_ORIGIN, CONF_DISPLAY_RADIUS: 5000})
+    )
+    data = await _run(hass, wide, master, status)
+    assert "CH*ABC*E1002" in data  # now within the display radius
+
+
+@pytest.mark.asyncio
+async def test_legacy_radius_falls_back_for_both(hass) -> None:
+    """A pre-split entry with only ``radius`` keeps the old behaviour."""
+    master = parse_evse_data(load_fixture("evse_data.json"))
+    entry = _make_entry(
+        hass, {**_ORIGIN, CONF_RADIUS: 5000, CONF_NOTIFY_ON_AVAILABLE: True}
+    )
+    coordinator = SwissEvChargingCoordinator(hass, entry)
+    # Legacy radius resolves to both display and alert.
+    assert coordinator.display_radius == 5000
+    assert coordinator.alert_radius == 5000
+    # No pins + alert radius covering both -> both stations alert, as before.
+    calls = await _transition_to_available(hass, coordinator, master)
+    assert len(calls) == 2
 
 
 @pytest.mark.asyncio
