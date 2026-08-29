@@ -7,7 +7,7 @@
         "data": {
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
-          "radius": "Suchradius (Meter)",
+          "display_radius": "Anzeigeradius (Meter) — welche Stationen angezeigt werden",
           "max_stations": "Max. Anzahl naher Stationen",
           "min_power": "Mindestleistung (kW)",
           "plug_types": "Steckertyp-Filter (kommagetrennt)",
@@ -28,7 +28,8 @@
       "init": {
         "title": "Swiss EV Charging Optionen",
         "data": {
-          "radius": "Suchradius (Meter)",
+          "display_radius": "Anzeigeradius (Meter) — welche Stationen angezeigt werden",
+          "alert_radius": "Alarmradius (Meter) — 0 = gleich dem Anzeigeradius",
           "max_stations": "Max. Anzahl naher Stationen",
           "min_power": "Mindestleistung (kW)",
           "plug_types": "Steckertyp-Filter (kommagetrennt)",

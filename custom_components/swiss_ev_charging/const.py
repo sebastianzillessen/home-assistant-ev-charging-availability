@@ -32,7 +32,11 @@ GEOADMIN_MAP_ZOOM: Final = 13
 # Configuration / options keys.
 CONF_LATITUDE: Final = "latitude"
 CONF_LONGITUDE: Final = "longitude"
+# Legacy single radius (<= 0.8.x): drove both discovery and alerting. Superseded
+# by CONF_DISPLAY_RADIUS + CONF_ALERT_RADIUS but still read as a fallback.
 CONF_RADIUS: Final = "radius"
+CONF_DISPLAY_RADIUS: Final = "display_radius"  # which stations are tracked/shown
+CONF_ALERT_RADIUS: Final = "alert_radius"  # which stations may alert (0 = = display)
 CONF_MAX_STATIONS: Final = "max_stations"
 CONF_PINNED_EVSE_IDS: Final = "pinned_evse_ids"
 CONF_MIN_POWER: Final = "min_power"
@@ -67,7 +71,9 @@ MARKER_STYLES: Final = (
 )
 
 # Defaults.
-DEFAULT_RADIUS: Final = 1000  # metres
+DEFAULT_RADIUS: Final = 1000  # metres (legacy single radius)
+DEFAULT_DISPLAY_RADIUS: Final = 2000  # metres (larger; discovery/map)
+DEFAULT_ALERT_RADIUS: Final = 0  # metres; 0 = same as the display radius
 DEFAULT_MAX_STATIONS: Final = 5
 DEFAULT_MIN_POWER: Final = 0.0  # kW, 0 = no filter
 DEFAULT_SCAN_INTERVAL: Final = 180  # seconds (3 minutes)

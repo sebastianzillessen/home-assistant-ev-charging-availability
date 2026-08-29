@@ -6,10 +6,10 @@ import pytest
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.swiss_ev_charging.const import (
+    CONF_DISPLAY_RADIUS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_PINNED_EVSE_IDS,
-    CONF_RADIUS,
     DOMAIN,
 )
 
@@ -27,11 +27,12 @@ async def test_user_flow_creates_entry_with_location(hass) -> None:
         {
             CONF_LATITUDE: 47.3769,
             CONF_LONGITUDE: 8.5417,
-            CONF_RADIUS: 1000,
+            CONF_DISPLAY_RADIUS: 1000,
         },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_LATITUDE] == 47.3769
+    assert result["data"][CONF_DISPLAY_RADIUS] == 1000
 
 
 @pytest.mark.asyncio

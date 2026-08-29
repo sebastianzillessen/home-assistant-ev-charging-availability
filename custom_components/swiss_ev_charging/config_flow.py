@@ -23,7 +23,9 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_ALERT_RADIUS,
     CONF_COLOR_MAP_MARKERS,
+    CONF_DISPLAY_RADIUS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_MAP_MARKER_STYLE,
@@ -37,12 +39,13 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_TAG,
+    DEFAULT_ALERT_RADIUS,
+    DEFAULT_DISPLAY_RADIUS,
     DEFAULT_MAP_MARKER_STYLE,
     DEFAULT_NAME_WITH_POWER,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
-    DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MARKER_STYLE_PIP,
@@ -121,7 +124,9 @@ class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
                 data = {
                     CONF_LATITUDE: user_input.get(CONF_LATITUDE),
                     CONF_LONGITUDE: user_input.get(CONF_LONGITUDE),
-                    CONF_RADIUS: user_input.get(CONF_RADIUS, DEFAULT_RADIUS),
+                    CONF_DISPLAY_RADIUS: user_input.get(
+                        CONF_DISPLAY_RADIUS, DEFAULT_DISPLAY_RADIUS
+                    ),
                     CONF_MAX_STATIONS: user_input.get(
                         CONF_MAX_STATIONS, DEFAULT_MAX_STATIONS
                     ),
@@ -154,9 +159,9 @@ class SwissEvChargingConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_LONGITUDE, default=home_lon): vol.Any(
                     None, cv.longitude
                 ),
-                vol.Optional(CONF_RADIUS, default=DEFAULT_RADIUS): vol.All(
-                    vol.Coerce(int), vol.Range(min=0)
-                ),
+                vol.Optional(
+                    CONF_DISPLAY_RADIUS, default=DEFAULT_DISPLAY_RADIUS
+                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
                 vol.Optional(
                     CONF_MAX_STATIONS, default=DEFAULT_MAX_STATIONS
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=50)),
@@ -195,7 +200,12 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
         """Show and persist the editable options."""
         if user_input is not None:
             options = {
-                CONF_RADIUS: user_input.get(CONF_RADIUS, DEFAULT_RADIUS),
+                CONF_DISPLAY_RADIUS: user_input.get(
+                    CONF_DISPLAY_RADIUS, DEFAULT_DISPLAY_RADIUS
+                ),
+                CONF_ALERT_RADIUS: user_input.get(
+                    CONF_ALERT_RADIUS, DEFAULT_ALERT_RADIUS
+                ),
                 CONF_MAX_STATIONS: user_input.get(
                     CONF_MAX_STATIONS, DEFAULT_MAX_STATIONS
                 ),
@@ -227,7 +237,15 @@ class SwissEvChargingOptionsFlow(OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Optional(
-                    CONF_RADIUS, default=current.get(CONF_RADIUS, DEFAULT_RADIUS)
+                    CONF_DISPLAY_RADIUS,
+                    default=current.get(
+                        CONF_DISPLAY_RADIUS,
+                        current.get(CONF_RADIUS, DEFAULT_DISPLAY_RADIUS),
+                    ),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
+                vol.Optional(
+                    CONF_ALERT_RADIUS,
+                    default=current.get(CONF_ALERT_RADIUS, DEFAULT_ALERT_RADIUS),
                 ): vol.All(vol.Coerce(int), vol.Range(min=0)),
                 vol.Optional(
                     CONF_MAX_STATIONS,

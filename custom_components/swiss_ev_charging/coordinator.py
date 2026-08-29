@@ -23,7 +23,9 @@ from .api import (
 from .ecarup import async_resolve_ecarup_states, is_ecarup_evse_id
 from .move import async_resolve_move_states, is_move_search_evse_id
 from .const import (
+    CONF_ALERT_RADIUS,
     CONF_COLOR_MAP_MARKERS,
+    CONF_DISPLAY_RADIUS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_MAP_MARKER_STYLE,
@@ -37,12 +39,13 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_TAG,
+    DEFAULT_ALERT_RADIUS,
+    DEFAULT_DISPLAY_RADIUS,
     DEFAULT_MAP_MARKER_STYLE,
     DEFAULT_NAME_WITH_POWER,
     DEFAULT_MAX_STATIONS,
     DEFAULT_MIN_POWER,
     DEFAULT_NOTIFY_ON_AVAILABLE,
-    DEFAULT_RADIUS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MARKER_STYLE_PIP,
@@ -133,6 +136,32 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
     def name_with_power(self) -> bool:
         """Whether to append the rated power to each station's device name."""
         return bool(self._option(CONF_NAME_WITH_POWER, DEFAULT_NAME_WITH_POWER))
+
+    @property
+    def display_radius(self) -> float:
+        """Discovery radius (m) — which stations are tracked and shown.
+
+        Falls back to the legacy single ``radius`` option for entries created
+        before the display/alert split.
+        """
+        value = self._option(
+            CONF_DISPLAY_RADIUS, self._option(CONF_RADIUS, DEFAULT_DISPLAY_RADIUS)
+        )
+        return float(value)
+
+    @property
+    def alert_radius(self) -> float:
+        """Alert radius (m) — which stations may fire an availability alert.
+
+        ``0`` (the default) means "same as the display radius". Falls back to the
+        legacy single ``radius`` option for pre-split entries.
+        """
+        value = float(
+            self._option(
+                CONF_ALERT_RADIUS, self._option(CONF_RADIUS, DEFAULT_ALERT_RADIUS)
+            )
+        )
+        return value if value > 0 else self.display_radius
 
     async def _async_update_data(self) -> dict[str, TrackedEvse]:
         """Refresh master data if stale, then poll live status and merge."""
@@ -292,15 +321,35 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
             return
         # A notify.* entity id, or blank to fall back to a persistent notification.
         target = (self._option(CONF_NOTIFY_SERVICE, "") or "").strip()
+        # Alert scope: once any station is pinned, only pinned stations alert;
+        # otherwise alert every station within the alert radius.
+        has_pins = bool(self._pinned_ids())
+        alert_radius = self.alert_radius
 
         for evse_id, tracked in current.items():
             was = previous.get(evse_id)
             if was is None:
                 continue
-            if was.state != STATE_AVAILABLE and tracked.state == STATE_AVAILABLE:
-                self.hass.async_create_task(
-                    self._async_send_notification(target, tracked)
-                )
+            if was.state == STATE_AVAILABLE or tracked.state != STATE_AVAILABLE:
+                continue
+            if not self._alerts_for(tracked, has_pins, alert_radius):
+                continue
+            self.hass.async_create_task(
+                self._async_send_notification(target, tracked)
+            )
+
+    @staticmethod
+    def _alerts_for(
+        tracked: TrackedEvse, has_pins: bool, alert_radius: float
+    ) -> bool:
+        """Whether ``tracked`` may fire an availability alert.
+
+        With any pinned station configured, only pinned stations alert; without
+        pins, a station alerts when it is within the alert radius.
+        """
+        if has_pins:
+            return tracked.is_pinned
+        return tracked.distance_m is not None and tracked.distance_m <= alert_radius
 
     async def _async_send_notification(
         self, target: str, tracked: TrackedEvse
@@ -339,7 +388,7 @@ class SwissEvChargingCoordinator(DataUpdateCoordinator[dict[str, TrackedEvse]]):
         nearby: list[str] = []
 
         if origin is not None:
-            radius = float(self._option(CONF_RADIUS, DEFAULT_RADIUS))
+            radius = self.display_radius
             max_stations = int(self._option(CONF_MAX_STATIONS, DEFAULT_MAX_STATIONS))
             min_power = float(self._option(CONF_MIN_POWER, DEFAULT_MIN_POWER))
             plug_filter = {p.lower() for p in self._option(CONF_PLUG_TYPES, []) or []}
