@@ -1,0 +1,64 @@
+name: Renovate patch release
+
+# When a Renovate PR is merged, bump the integration's own version by a patch
+# and cut the release. Dependency updates here are CI/test-only (the integration
+# has no runtime requirements), so these releases carry no shipped-code change —
+# they exist to keep HACS in step with the version bump, as requested.
+#
+# Why this creates the release itself instead of leaving it to release.yml:
+# the bump is pushed with the default GITHUB_TOKEN, which does not re-trigger
+# `on: push` workflows, so release.yml would not fire for it.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: renovate-release
+  cancel-in-progress: false
+
+jobs:
+  bump-and-release:
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Bump manifest patch version
+        id: bump
+        run: |
+          NEW=$(python - <<'PY'
+          import json
+          path = "custom_components/swiss_ev_charging/manifest.json"
+          data = json.load(open(path))
+          major, minor, patch = (int(x) for x in data["version"].split("."))
+          data["version"] = f"{major}.{minor}.{patch + 1}"
+          json.dump(data, open(path, "w"), indent=2, ensure_ascii=False)
+          open(path, "a").write("\n")
+          print(data["version"])
+          PY
+          )
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, push and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          TAG="v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Release ${VERSION} (dependency updates)"
+          git push origin main
+          gh release create "$TAG" \
+            --generate-notes \
+            --target "$(git rev-parse HEAD)" \
+            --title "$TAG"
