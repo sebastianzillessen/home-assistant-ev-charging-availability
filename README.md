@@ -4,6 +4,8 @@
 
 # Swiss EV Charging (ich-tanke-strom) — Home Assistant Integration
 
+[![Tests](https://github.com/sebastianzillessen/home-assistant-ev-charging-availability/actions/workflows/test.yml/badge.svg)](https://github.com/sebastianzillessen/home-assistant-ev-charging-availability/actions/workflows/test.yml) [![Validate](https://github.com/sebastianzillessen/home-assistant-ev-charging-availability/actions/workflows/validate.yml/badge.svg)](https://github.com/sebastianzillessen/home-assistant-ev-charging-availability/actions/workflows/validate.yml) [![Renovate enabled](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://docs.renovatebot.com/)
+
 Home Assistant integration for Switzerland's official real-time EV charging
 availability, powered by the open data behind
 [ich-tanke-strom.ch](https://www.ich-tanke-strom.ch), operated by the Swiss
