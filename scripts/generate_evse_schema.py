@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import urllib.request
 from pathlib import Path
@@ -38,12 +39,26 @@ SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schemas"
 
 
 def _download(url: str) -> dict:
-    """Download and decode a JSON document from the public endpoint."""
+    """Download and decode a JSON document from the public endpoint.
+
+    The endpoint serves gzip-compressed bodies. ``urllib`` does not
+    transparently decompress like ``aiohttp`` does, so decode the payload
+    ourselves: honour a ``Content-Encoding: gzip`` header and, as a fallback,
+    sniff the gzip magic bytes (``1f 8b``) in case the header is absent.
+    """
     request = urllib.request.Request(
-        url, headers={"User-Agent": "ha-swiss-ev-schema-gen"}
+        url,
+        headers={
+            "User-Agent": "ha-swiss-ev-schema-gen",
+            "Accept-Encoding": "gzip",
+        },
     )
     with urllib.request.urlopen(request, timeout=300) as response:  # noqa: S310
-        return json.load(response)
+        raw = response.read()
+        encoding = response.headers.get("Content-Encoding", "")
+    if "gzip" in encoding.lower() or raw[:2] == b"\x1f\x8b":
+        raw = gzip.decompress(raw)
+    return json.loads(raw)
 
 
 def build_schema(data: object) -> dict:
