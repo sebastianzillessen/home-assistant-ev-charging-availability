@@ -46,7 +46,10 @@
                       "type": "null"
                     },
                     "PostalCode": {
-                      "type": "string"
+                      "type": [
+                        "integer",
+                        "string"
+                      ]
                     },
                     "Region": {
                       "type": [
