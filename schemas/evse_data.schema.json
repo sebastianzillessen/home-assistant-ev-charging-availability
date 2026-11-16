@@ -46,7 +46,10 @@
                       "type": "null"
                     },
                     "PostalCode": {
-                      "type": "string"
+                      "type": [
+                        "integer",
+                        "string"
+                      ]
                     },
                     "Region": {
                       "type": [
@@ -88,10 +91,7 @@
                   "items": {
                     "properties": {
                       "Amperage": {
-                        "type": [
-                          "number",
-                          "string"
-                        ]
+                        "type": "number"
                       },
                       "ChargingModes": {
                         "items": {
@@ -100,10 +100,7 @@
                         "type": "array"
                       },
                       "Voltage": {
-                        "type": [
-                          "number",
-                          "string"
-                        ]
+                        "type": "number"
                       },
                       "power": {
                         "type": [
